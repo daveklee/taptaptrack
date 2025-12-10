@@ -15,6 +15,12 @@ struct TrackView: View {
     @State private var selectedPreset: EventPreset?
     @State private var noteText = ""
     
+    // Confirmation states
+    @State private var showingConfirmation = false
+    @State private var showingQuickNote = false
+    @State private var showingEditEvent = false
+    @State private var trackedEvent: TrackedEvent?
+    
     private var eventsToday: Int {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -94,13 +100,76 @@ struct TrackView: View {
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showingConfirmation) {
+            if let event = trackedEvent {
+                TrackConfirmationSheet(
+                    event: event,
+                    onAddNote: {
+                        showingQuickNote = true
+                    },
+                    onEdit: {
+                        showingEditEvent = true
+                    },
+                    onDelete: {
+                        deleteEvent(event)
+                    }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingQuickNote) {
+            if let event = trackedEvent {
+                QuickNoteSheet(event: event) { notes in
+                    event.notes = notes
+                    hapticFeedback()
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingEditEvent) {
+            if let event = trackedEvent {
+                EditEventSheet(
+                    event: event,
+                    onSave: { newDate, notes in
+                        event.timestamp = newDate
+                        event.notes = notes
+                        hapticFeedback()
+                    },
+                    onDelete: {
+                        deleteEvent(event)
+                    }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
     }
     
     private func trackEvent(preset: EventPreset, notes: String? = nil) {
         let event = TrackedEvent(preset: preset, notes: notes)
         modelContext.insert(event)
         
+        // Store reference and show confirmation
+        trackedEvent = event
+        showingConfirmation = true
+        
         // Haptic feedback
+        hapticFeedback()
+    }
+    
+    private func deleteEvent(_ event: TrackedEvent) {
+        withAnimation {
+            modelContext.delete(event)
+            trackedEvent = nil
+            
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    private func hapticFeedback() {
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
     }

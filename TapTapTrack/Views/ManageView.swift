@@ -546,32 +546,221 @@ struct EditPresetSheet: View {
 // MARK: - Icon Picker
 struct IconPicker: View {
     @Binding var selectedIcon: String
+    @State private var searchText = ""
+    @State private var expandedCategory: String? = nil
     
     private let columns = [
-        GridItem(.adaptive(minimum: 50), spacing: 12)
+        GridItem(.adaptive(minimum: 44), spacing: 8)
     ]
     
+    private var filteredCategories: [(category: String, icons: [(name: String, systemName: String)])] {
+        if searchText.isEmpty {
+            return EventPreset.iconCategories
+        }
+        
+        let lowercasedSearch = searchText.lowercased()
+        return EventPreset.iconCategories.compactMap { category in
+            let filteredIcons = category.icons.filter { icon in
+                icon.name.lowercased().contains(lowercasedSearch)
+            }
+            if filteredIcons.isEmpty {
+                return nil
+            }
+            return (category: category.category, icons: filteredIcons)
+        }
+    }
+    
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(EventPreset.availableIcons, id: \.systemName) { icon in
-                Button {
-                    selectedIcon = icon.systemName
-                } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(selectedIcon == icon.systemName 
-                                  ? Color(hex: "#667eea")! 
-                                  : Color(hex: "#2a2a4e")!)
-                            .frame(width: 50, height: 50)
-                        
-                        Image(systemName: icon.systemName)
-                            .font(.system(size: 22))
-                            .foregroundColor(.white)
+        VStack(spacing: 12) {
+            // Search bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                
+                TextField("Search icons...", text: $searchText)
+                    .foregroundColor(.white)
+                
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.gray)
                     }
                 }
             }
+            .padding(12)
+            .background(Color(hex: "#252540")!)
+            .cornerRadius(12)
+            .padding(.horizontal)
+            
+            // Selected icon preview
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: selectedIcon)
+                        .font(.system(size: 26))
+                        .foregroundColor(.white)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Selected Icon")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    
+                    Text(iconName(for: selectedIcon))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            // Icon categories
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(filteredCategories, id: \.category) { categoryData in
+                        IconCategorySection(
+                            category: categoryData.category,
+                            icons: categoryData.icons,
+                            selectedIcon: $selectedIcon,
+                            isExpanded: expandedCategory == categoryData.category || !searchText.isEmpty,
+                            onToggle: {
+                                withAnimation(.spring(response: 0.3)) {
+                                    if expandedCategory == categoryData.category {
+                                        expandedCategory = nil
+                                    } else {
+                                        expandedCategory = categoryData.category
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
+            }
+            .frame(maxHeight: 300)
         }
-        .padding(.horizontal)
+    }
+    
+    private func iconName(for systemName: String) -> String {
+        for category in EventPreset.iconCategories {
+            if let icon = category.icons.first(where: { $0.systemName == systemName }) {
+                return icon.name
+            }
+        }
+        return systemName
+    }
+}
+
+// MARK: - Icon Category Section
+struct IconCategorySection: View {
+    let category: String
+    let icons: [(name: String, systemName: String)]
+    @Binding var selectedIcon: String
+    let isExpanded: Bool
+    let onToggle: () -> Void
+    
+    private let columns = [
+        GridItem(.adaptive(minimum: 44), spacing: 8)
+    ]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Category header
+            Button(action: onToggle) {
+                HStack {
+                    Text(category)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Text("(\(icons.count))")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.gray)
+                }
+                .padding(.vertical, 8)
+            }
+            
+            // Icons grid
+            if isExpanded {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(icons, id: \.systemName) { icon in
+                        Button {
+                            selectedIcon = icon.systemName
+                            
+                            // Haptic feedback
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(selectedIcon == icon.systemName 
+                                          ? Color(hex: "#667eea")! 
+                                          : Color(hex: "#2a2a4e")!)
+                                    .frame(width: 44, height: 44)
+                                
+                                Image(systemName: icon.systemName)
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                // Show preview of first few icons when collapsed
+                HStack(spacing: 6) {
+                    ForEach(icons.prefix(6), id: \.systemName) { icon in
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(selectedIcon == icon.systemName 
+                                      ? Color(hex: "#667eea")! 
+                                      : Color(hex: "#2a2a4e")!)
+                                .frame(width: 36, height: 36)
+                            
+                            Image(systemName: icon.systemName)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                        }
+                        .onTapGesture {
+                            selectedIcon = icon.systemName
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }
+                    }
+                    
+                    if icons.count > 6 {
+                        Text("+\(icons.count - 6)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 8)
+                    }
+                    
+                    Spacer()
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(hex: "#252540")!)
+        .cornerRadius(12)
     }
 }
 

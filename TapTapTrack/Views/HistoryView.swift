@@ -13,6 +13,8 @@ struct HistoryView: View {
     
     @State private var showingExportSheet = false
     @State private var exportURL: URL?
+    @State private var showingEditSheet = false
+    @State private var selectedEvent: TrackedEvent?
     
     private var eventsToday: Int {
         let calendar = Calendar.current
@@ -94,9 +96,17 @@ struct HistoryView: View {
                         } else {
                             // Grouped events
                             ForEach(groupedEvents, id: \.date) { group in
-                                EventDateGroup(date: group.date, events: group.events) { event in
-                                    deleteEvent(event)
-                                }
+                                EventDateGroup(
+                                    date: group.date,
+                                    events: group.events,
+                                    onEdit: { event in
+                                        selectedEvent = event
+                                        showingEditSheet = true
+                                    },
+                                    onDelete: { event in
+                                        deleteEvent(event)
+                                    }
+                                )
                             }
                         }
                     }
@@ -115,6 +125,28 @@ struct HistoryView: View {
                 ShareSheet(activityItems: [url])
             }
         }
+        .sheet(isPresented: $showingEditSheet) {
+            if let event = selectedEvent {
+                EditEventSheet(
+                    event: event,
+                    onSave: { newDate, notes in
+                        event.timestamp = newDate
+                        event.notes = notes
+                        hapticFeedback()
+                    },
+                    onDelete: {
+                        deleteEvent(event)
+                    }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+    }
+    
+    private func hapticFeedback() {
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
     }
     
     private func deleteEvent(_ event: TrackedEvent) {
@@ -191,6 +223,7 @@ struct EmptyHistoryView: View {
 struct EventDateGroup: View {
     let date: String
     let events: [TrackedEvent]
+    let onEdit: (TrackedEvent) -> Void
     let onDelete: (TrackedEvent) -> Void
     
     var body: some View {
@@ -201,8 +234,12 @@ struct EventDateGroup: View {
                 .padding(.horizontal, 20)
             
             ForEach(events) { event in
-                EventHistoryCard(event: event, onDelete: { onDelete(event) })
-                    .padding(.horizontal, 20)
+                EventHistoryCard(
+                    event: event,
+                    onEdit: { onEdit(event) },
+                    onDelete: { onDelete(event) }
+                )
+                .padding(.horizontal, 20)
             }
         }
         .padding(.bottom, 16)
@@ -212,6 +249,7 @@ struct EventDateGroup: View {
 // MARK: - Event History Card
 struct EventHistoryCard: View {
     let event: TrackedEvent
+    let onEdit: () -> Void
     let onDelete: () -> Void
     
     var body: some View {
@@ -263,6 +301,14 @@ struct EventHistoryCard: View {
             }
             
             Spacer()
+            
+            // Edit button
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+            }
+            .padding(.trailing, 4)
             
             // Delete button
             Button(action: onDelete) {
