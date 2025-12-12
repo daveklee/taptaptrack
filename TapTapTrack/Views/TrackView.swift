@@ -39,9 +39,21 @@ struct TrackView: View {
             
             ScrollView {
                 VStack(spacing: 0) {
+                    // App Branding
+                    HStack(spacing: 8) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                        
+                        Text("Tap Tap Track")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.top, 60)
+                    .padding(.bottom, 16)
+                    
                     // Stats Header
                     StatsHeader(eventsToday: eventsToday, eventsThisWeek: eventsThisWeek)
-                        .padding(.top, 60)
                         .padding(.bottom, 24)
                     
                     // Track Event Section

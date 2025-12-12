@@ -14,6 +14,7 @@ struct ManageView: View {
     @State private var showingAddCategory = false
     @State private var showingAddPreset = false
     @State private var showingEditPreset = false
+    @State private var showingAbout = false
     @State private var selectedPreset: EventPreset?
     
     var body: some View {
@@ -48,6 +49,9 @@ struct ManageView: View {
                         },
                         onDelete: deletePreset
                     )
+                    
+                    // About & Help Section
+                    AboutSection(onTap: { showingAbout = true })
                     
                     Spacer(minLength: 100)
                 }
@@ -88,6 +92,11 @@ struct ManageView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             }
+        }
+        .sheet(isPresented: $showingAbout) {
+            AboutSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
     
@@ -802,6 +811,232 @@ struct DarkTextFieldStyle: TextFieldStyle {
             .background(Color(hex: "#2a2a4e")!)
             .foregroundColor(.white)
             .cornerRadius(12)
+    }
+}
+
+// MARK: - About Section
+struct AboutSection: View {
+    let onTap: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("About")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+            
+            Button(action: onTap) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+                        
+                        Image(systemName: "hand.tap.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Tap Tap Track")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        Text("How to use & app info")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.gray)
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(hex: "#252540")!)
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - About Sheet
+struct AboutSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color(hex: "#1a1a2e")!.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // App Logo & Name
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 100, height: 100)
+                                
+                                Image(systemName: "hand.tap.fill")
+                                    .font(.system(size: 44))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text("Tap Tap Track")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text("Simple Event Tracking")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 24)
+                        
+                        // How to Use Section
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("How to Use")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            HowToItem(
+                                icon: "hand.tap",
+                                title: "Quick Track",
+                                description: "Tap any event button to instantly log it with the current time."
+                            )
+                            
+                            HowToItem(
+                                icon: "hand.tap.fill",
+                                title: "Track with Details",
+                                description: "Long-press an event button to log it and immediately edit the time, date, or add notes."
+                            )
+                            
+                            HowToItem(
+                                icon: "clock.arrow.circlepath",
+                                title: "View History",
+                                description: "Switch to the History tab to see all your tracked events. Tap the edit icon to modify any entry."
+                            )
+                            
+                            HowToItem(
+                                icon: "slider.horizontal.3",
+                                title: "Customize",
+                                description: "Use the Manage tab to create your own categories and event presets with custom icons."
+                            )
+                            
+                            HowToItem(
+                                icon: "arrow.down.doc.fill",
+                                title: "Export Data",
+                                description: "Export your event history to CSV from the History tab for backup or analysis."
+                            )
+                        }
+                        .padding(20)
+                        .background(Color(hex: "#252540")!)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                        
+                        // Tips Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Tips")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            TipItem(text: "Events auto-save when you tap, so tracking is instant")
+                            TipItem(text: "The confirmation popup auto-dismisses after 5 seconds")
+                            TipItem(text: "Use categories to organize similar events together")
+                            TipItem(text: "Add notes to remember context about specific events")
+                        }
+                        .padding(20)
+                        .background(Color(hex: "#252540")!)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                        
+                        // Version
+                        Text("Version 1.0")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                            .padding(.top, 8)
+                        
+                        Spacer(minLength: 40)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - How To Item
+struct HowToItem: View {
+    let icon: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "#3a3a5e")!)
+                    .frame(width: 40, height: 40)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Text(description)
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+// MARK: - Tip Item
+struct TipItem: View {
+    let text: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lightbulb.fill")
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: "#FBBF24")!)
+            
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
