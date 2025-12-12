@@ -173,6 +173,7 @@ struct TrackConfirmationSheet: View {
     let onDelete: () -> Void
     
     @State private var animateCheckmark = false
+    @State private var autoDismissTask: DispatchWorkItem?
     
     var body: some View {
         ZStack {
@@ -225,6 +226,7 @@ struct TrackConfirmationSheet: View {
                 // Action Buttons
                 VStack(spacing: 12) {
                     Button {
+                        cancelAutoDismiss()
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             onAddNote()
@@ -238,6 +240,7 @@ struct TrackConfirmationSheet: View {
                     .buttonStyle(SecondaryButtonStyle())
                     
                     Button {
+                        cancelAutoDismiss()
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             onEdit()
@@ -251,6 +254,7 @@ struct TrackConfirmationSheet: View {
                     .buttonStyle(SecondaryButtonStyle())
                     
                     Button {
+                        cancelAutoDismiss()
                         onDelete()
                         dismiss()
                     } label: {
@@ -265,6 +269,7 @@ struct TrackConfirmationSheet: View {
                 
                 // Done Button
                 Button("Done") {
+                    cancelAutoDismiss()
                     dismiss()
                 }
                 .buttonStyle(PrimaryButtonStyle())
@@ -273,7 +278,7 @@ struct TrackConfirmationSheet: View {
                 
                 Spacer()
             }
-            .padding(.top, 40)
+            .padding(.top, 24)
         }
         .onAppear {
             // Trigger animation
@@ -284,7 +289,22 @@ struct TrackConfirmationSheet: View {
             // Success haptic
             let notificationFeedback = UINotificationFeedbackGenerator()
             notificationFeedback.notificationOccurred(.success)
+            
+            // Auto-dismiss after 5 seconds
+            let task = DispatchWorkItem {
+                dismiss()
+            }
+            autoDismissTask = task
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: task)
         }
+        .onDisappear {
+            cancelAutoDismiss()
+        }
+    }
+    
+    private func cancelAutoDismiss() {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
     }
 }
 

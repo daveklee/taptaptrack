@@ -91,7 +91,7 @@ struct TrackView: View {
                         deleteEvent(event)
                     }
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.height(540)])
                 .presentationDragIndicator(.visible)
             }
         }
