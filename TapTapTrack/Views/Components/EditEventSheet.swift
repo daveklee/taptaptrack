@@ -64,6 +64,22 @@ struct EditEventSheet: View {
                         }
                         .padding(.top, 8)
                         
+                        // Notes Section (at the top for quick access)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Notes")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                            
+                            TextEditor(text: $noteText)
+                                .scrollContentBackground(.hidden)
+                                .foregroundColor(.white)
+                                .frame(height: 100)
+                                .padding()
+                                .background(Color(hex: "#252540")!)
+                                .cornerRadius(16)
+                        }
+                        .padding(.horizontal)
+                        
                         // Date Picker Section
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Date")
@@ -102,22 +118,6 @@ struct EditEventSheet: View {
                             .padding()
                             .background(Color(hex: "#252540")!)
                             .cornerRadius(16)
-                        }
-                        .padding(.horizontal)
-                        
-                        // Notes Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Notes")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                            
-                            TextEditor(text: $noteText)
-                                .scrollContentBackground(.hidden)
-                                .foregroundColor(.white)
-                                .frame(height: 100)
-                                .padding()
-                                .background(Color(hex: "#252540")!)
-                                .cornerRadius(16)
                         }
                         .padding(.horizontal)
                         

@@ -11,10 +11,6 @@ struct TrackView: View {
     @Query(sort: \Category.createdAt) private var categories: [Category]
     @Query(sort: \TrackedEvent.timestamp, order: .reverse) private var allEvents: [TrackedEvent]
     
-    @State private var showingNoteSheet = false
-    @State private var selectedPreset: EventPreset?
-    @State private var noteText = ""
-    
     // Confirmation states
     @State private var showingConfirmation = false
     @State private var showingQuickNote = false
@@ -65,9 +61,7 @@ struct TrackView: View {
                                         trackEvent(preset: preset)
                                     },
                                     onLongPress: { preset in
-                                        selectedPreset = preset
-                                        noteText = ""
-                                        showingNoteSheet = true
+                                        trackEventAndEdit(preset: preset)
                                     }
                                 )
                             }
@@ -82,23 +76,6 @@ struct TrackView: View {
                     Spacer(minLength: 100)
                 }
             }
-        }
-        .sheet(isPresented: $showingNoteSheet) {
-            AddNoteSheet(
-                presetName: selectedPreset?.name ?? "",
-                noteText: $noteText,
-                onSave: {
-                    if let preset = selectedPreset {
-                        trackEvent(preset: preset, notes: noteText.isEmpty ? nil : noteText)
-                    }
-                    showingNoteSheet = false
-                },
-                onCancel: {
-                    showingNoteSheet = false
-                }
-            )
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingConfirmation) {
             if let event = trackedEvent {
@@ -154,6 +131,18 @@ struct TrackView: View {
         // Store reference and show confirmation
         trackedEvent = event
         showingConfirmation = true
+        
+        // Haptic feedback
+        hapticFeedback()
+    }
+    
+    private func trackEventAndEdit(preset: EventPreset) {
+        let event = TrackedEvent(preset: preset)
+        modelContext.insert(event)
+        
+        // Store reference and show edit sheet directly
+        trackedEvent = event
+        showingEditEvent = true
         
         // Haptic feedback
         hapticFeedback()
@@ -332,53 +321,6 @@ struct EventPresetCard: View {
         .frame(height: 110)
         .scaleEffect(isPressed ? 0.95 : 1.0)
         .animation(.spring(response: 0.2), value: isPressed)
-    }
-}
-
-// MARK: - Add Note Sheet
-struct AddNoteSheet: View {
-    let presetName: String
-    @Binding var noteText: String
-    let onSave: () -> Void
-    let onCancel: () -> Void
-    
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color(hex: "#1a1a2e")!.ignoresSafeArea()
-                
-                VStack(spacing: 20) {
-                    Text("Add Note to \(presetName)")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
-                    
-                    TextEditor(text: $noteText)
-                        .scrollContentBackground(.hidden)
-                        .background(Color(hex: "#2a2a4e")!)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .frame(height: 120)
-                        .padding(.horizontal)
-                    
-                    HStack(spacing: 16) {
-                        Button("Cancel") {
-                            onCancel()
-                        }
-                        .buttonStyle(SecondaryButtonStyle())
-                        
-                        Button("Track Event") {
-                            onSave()
-                        }
-                        .buttonStyle(PrimaryButtonStyle())
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer()
-                }
-                .padding(.top, 24)
-            }
-            .navigationBarHidden(true)
-        }
     }
 }
 
