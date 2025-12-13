@@ -13,21 +13,6 @@ struct HistoryView: View {
     
     @State private var showingExportSheet = false
     @State private var exportURL: URL?
-    @State private var eventToEdit: TrackedEvent?
-    @State private var searchText: String = ""
-    
-    private var filteredEvents: [TrackedEvent] {
-        if searchText.isEmpty {
-            return allEvents
-        }
-        
-        let searchLower = searchText.lowercased()
-        return allEvents.filter { event in
-            event.eventName.lowercased().contains(searchLower) ||
-            event.categoryName.lowercased().contains(searchLower) ||
-            (event.notes?.lowercased().contains(searchLower) ?? false)
-        }
-    }
     
     private var eventsToday: Int {
         let calendar = Calendar.current
@@ -45,7 +30,7 @@ struct HistoryView: View {
     }
     
     private var groupedEvents: [(date: String, events: [TrackedEvent])] {
-        let grouped = Dictionary(grouping: filteredEvents) { event -> String in
+        let grouped = Dictionary(grouping: allEvents) { event -> String in
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             return formatter.string(from: event.timestamp)
@@ -104,51 +89,14 @@ struct HistoryView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        // Search Bar
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(.gray)
-                                .padding(.leading, 16)
-                            
-                            TextField("Search events, categories, or notes...", text: $searchText)
-                                .textFieldStyle(PlainTextFieldStyle())
-                                .foregroundColor(.white)
-                                .padding(.vertical, 12)
-                            
-                            if !searchText.isEmpty {
-                                Button(action: {
-                                    searchText = ""
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.gray)
-                                        .padding(.trailing, 16)
-                                }
-                            }
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(hex: "#2a2a4e")!)
-                        )
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-                        
                         if allEvents.isEmpty {
                             EmptyHistoryView()
-                        } else if filteredEvents.isEmpty && !searchText.isEmpty {
-                            EmptySearchResultsView()
                         } else {
                             // Grouped events
                             ForEach(groupedEvents, id: \.date) { group in
-                                EventDateGroup(
-                                    date: group.date,
-                                    events: group.events,
-                                    onEdit: { event in
-                                        eventToEdit = event
-                                    },
-                                    onDelete: { event in
-                                        deleteEvent(event)
-                                    }
-                                )
+                                EventDateGroup(date: group.date, events: group.events) { event in
+                                    deleteEvent(event)
+                                }
                             }
                         }
                     }
@@ -167,26 +115,6 @@ struct HistoryView: View {
                 ShareSheet(activityItems: [url])
             }
         }
-        .sheet(item: $eventToEdit) { event in
-            EditEventSheet(
-                event: event,
-                onSave: { newDate, notes in
-                    event.timestamp = newDate
-                    event.notes = notes
-                    hapticFeedback()
-                },
-                onDelete: {
-                    deleteEvent(event)
-                }
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-    }
-    
-    private func hapticFeedback() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
     }
     
     private func deleteEvent(_ event: TrackedEvent) {
@@ -259,32 +187,10 @@ struct EmptyHistoryView: View {
     }
 }
 
-// MARK: - Empty Search Results View
-struct EmptySearchResultsView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundColor(.gray)
-            
-            Text("No results found")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(.gray)
-            
-            Text("Try a different search term")
-                .font(.system(size: 14))
-                .foregroundColor(.gray.opacity(0.7))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
-    }
-}
-
 // MARK: - Event Date Group
 struct EventDateGroup: View {
     let date: String
     let events: [TrackedEvent]
-    let onEdit: (TrackedEvent) -> Void
     let onDelete: (TrackedEvent) -> Void
     
     var body: some View {
@@ -295,12 +201,8 @@ struct EventDateGroup: View {
                 .padding(.horizontal, 20)
             
             ForEach(events) { event in
-                EventHistoryCard(
-                    event: event,
-                    onEdit: { onEdit(event) },
-                    onDelete: { onDelete(event) }
-                )
-                .padding(.horizontal, 20)
+                EventHistoryCard(event: event, onDelete: { onDelete(event) })
+                    .padding(.horizontal, 20)
             }
         }
         .padding(.bottom, 16)
@@ -310,7 +212,6 @@ struct EventDateGroup: View {
 // MARK: - Event History Card
 struct EventHistoryCard: View {
     let event: TrackedEvent
-    let onEdit: () -> Void
     let onDelete: () -> Void
     
     var body: some View {
@@ -362,14 +263,6 @@ struct EventHistoryCard: View {
             }
             
             Spacer()
-            
-            // Edit button
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#60A5FA")!)
-            }
-            .padding(.trailing, 4)
             
             // Delete button
             Button(action: onDelete) {

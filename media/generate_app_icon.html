@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tap Tap Track App Icon Generator</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #1a1a2e;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            color: white;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        .instructions {
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #aaa;
+        }
+        
+        .icon-container {
+            position: relative;
+            width: 1024px;
+            height: 1024px;
+        }
+        
+        .app-icon {
+            width: 1024px;
+            height: 1024px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #4f46e5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Subtle pattern overlay */
+        .app-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+        
+        .logo {
+            width: 600px;
+            height: 600px;
+            object-fit: contain;
+            position: relative;
+            z-index: 1;
+            /* Make the logo white to stand out on gradient */
+            filter: brightness(0) invert(1);
+        }
+        
+        .preview-small {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            align-items: flex-end;
+        }
+        
+        .preview-item {
+            text-align: center;
+        }
+        
+        .preview-item img {
+            border-radius: 22%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .preview-item p {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .download-btn {
+            margin-top: 30px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .download-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Alternative versions */
+        .alternatives {
+            display: flex;
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .alt-icon {
+            width: 200px;
+            height: 200px;
+            border-radius: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .alt-icon:hover {
+            transform: scale(1.05);
+        }
+        
+        .alt-icon img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+        
+        .alt-1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .alt-2 {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        
+        .alt-3 {
+            background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+        }
+        
+        .alt-4 {
+            background: #1a1a2e;
+            border: 3px solid #667eea;
+        }
+        
+        .alt-4 img {
+            filter: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tap Tap Track App Icon</h1>
+    
+    <div class="instructions">
+        <p><strong>To save as 1024×1024 PNG:</strong></p>
+        <p>1. Right-click the large icon below → "Save Image As" (or take a screenshot)</p>
+        <p>2. Or use browser dev tools to screenshot the .app-icon element at 1024×1024</p>
+    </div>
+    
+    <!-- Main 1024x1024 icon -->
+    <div class="icon-container">
+        <div class="app-icon" id="appIcon">
+            <img src="taptaptrack_logo.png" class="logo" alt="Tap Tap Track Logo">
+        </div>
+    </div>
+    
+    <!-- Size previews -->
+    <div class="preview-small">
+        <div class="preview-item">
+            <div class="app-icon" style="width: 180px; height: 180px; border-radius: 40px;">
+                <img src="taptaptrack_logo.png" class="logo" style="width: 108px; height: 108px;" alt="">
+            </div>
+            <p>Home Screen (180pt)</p>
+        </div>
+        <div class="preview-item">
+            <div class="app-icon" style="width: 120px; height: 120px; border-radius: 26px;">
+                <img src="taptaptrack_logo.png" class="logo" style="width: 72px; height: 72px;" alt="">
+            </div>
+            <p>Spotlight (120pt)</p>
+        </div>
+        <div class="preview-item">
+            <div class="app-icon" style="width: 80px; height: 80px; border-radius: 18px;">
+                <img src="taptaptrack_logo.png" class="logo" style="width: 48px; height: 48px;" alt="">
+            </div>
+            <p>Settings (80pt)</p>
+        </div>
+        <div class="preview-item">
+            <div class="app-icon" style="width: 58px; height: 58px; border-radius: 13px;">
+                <img src="taptaptrack_logo.png" class="logo" style="width: 35px; height: 35px;" alt="">
+            </div>
+            <p>Notification (58pt)</p>
+        </div>
+    </div>
+    
+    <h2 style="margin-top: 50px;">Alternative Color Options</h2>
+    
+    <div class="alternatives">
+        <div class="alt-icon alt-1">
+            <img src="taptaptrack_logo.png" alt="">
+        </div>
+        <div class="alt-icon alt-2">
+            <img src="taptaptrack_logo.png" alt="">
+        </div>
+        <div class="alt-icon alt-3">
+            <img src="taptaptrack_logo.png" alt="">
+        </div>
+        <div class="alt-icon alt-4">
+            <img src="taptaptrack_logo.png" alt="">
+        </div>
+    </div>
+    
+    <script>
+        // Canvas-based download function
+        async function downloadIcon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw gradient background
+            const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(0.5, '#764ba2');
+            gradient.addColorStop(1, '#4f46e5');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 1024);
+            
+            // Add subtle highlight
+            const radial = ctx.createRadialGradient(307, 307, 0, 307, 307, 512);
+            radial.addColorStop(0, 'rgba(255,255,255,0.1)');
+            radial.addColorStop(1, 'transparent');
+            ctx.fillStyle = radial;
+            ctx.fillRect(0, 0, 1024, 1024);
+            
+            // Load and draw logo
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = 'taptaptrack_logo.png';
+            
+            img.onload = function() {
+                // Draw white version of logo
+                ctx.filter = 'brightness(0) invert(1)';
+                const logoSize = 600;
+                const logoX = (1024 - logoSize) / 2;
+                const logoY = (1024 - logoSize) / 2;
+                ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
+                
+                // Download
+                const link = document.createElement('a');
+                link.download = 'TapTapTrack_AppIcon_1024x1024.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+        }
+    </script>
+    
+    <button class="download-btn" onclick="downloadIcon()">
+        Download 1024×1024 Icon
+    </button>
+    
+    <p style="margin-top: 20px; color: #666; font-size: 12px;">
+        Note: If the download button doesn't work due to CORS, take a screenshot of the icon above.
+    </p>
+</body>
+</html>
+
