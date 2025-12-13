@@ -25,12 +25,13 @@ A beautifully designed iOS app for tracking life events with just one tap.
 ### ⚙️ Manage Screen
 - **Custom categories** - Create Work, Personal, Health, Social, or any category
 - **Event presets** - Set up frequently-tracked events with custom names and icons
-- **15 icon options** - Choose from people, exercise, coffee, phone, sleep, and more
+- **200+ icon options** - Choose from 12 categories including health, food, work, social, travel, and more
 - **Easy editing** - Update or delete categories and presets anytime
+- **Smart deletion** - When deleting presets, choose to keep or remove associated tracked events
 
 ## Design
 
-TapTrack features a modern dark theme with:
+Tap Tap Track features a modern dark theme with:
 - Purple/blue gradient backgrounds
 - Smooth animations and transitions
 - Rounded cards and buttons
@@ -64,7 +65,8 @@ TapTapTrack/
 │   ├── HistoryView.swift      # Event history screen
 │   ├── ManageView.swift       # Settings/management screen
 │   └── Components/
-│       └── AppBackground.swift # Shared gradient backgrounds
+│       ├── AppBackground.swift # Shared gradient backgrounds
+│       └── EditEventSheet.swift # Event editing sheet
 └── Assets.xcassets/           # App icons and colors
 ```
 
@@ -80,5 +82,7 @@ On first launch, the app creates starter data:
 
 ## License
 
-MIT License - feel free to use this code for your own projects!
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Feel free to use this code for your own projects!
 
