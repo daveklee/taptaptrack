@@ -81,15 +81,15 @@ struct ManageView: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingAddPreset) {
-            AddPresetSheet(categories: categories) { name, iconName, category in
-                addPreset(name: name, iconName: iconName, category: category)
+            AddPresetSheet(categories: categories) { name, iconName, colorHex, category in
+                addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
         .sheet(item: $presetToEdit) { preset in
-            EditPresetSheet(preset: preset, categories: categories) { name, iconName, category in
-                updatePreset(preset, name: name, iconName: iconName, category: category)
+            EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category in
+                updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -142,15 +142,16 @@ struct ManageView: View {
         hapticFeedback()
     }
     
-    private func addPreset(name: String, iconName: String, category: Category?) {
-        let preset = EventPreset(name: name, iconName: iconName, category: category)
+    private func addPreset(name: String, iconName: String, colorHex: String, category: Category?) {
+        let preset = EventPreset(name: name, iconName: iconName, colorHex: colorHex, category: category)
         modelContext.insert(preset)
         hapticFeedback()
     }
     
-    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, category: Category?) {
+    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, colorHex: String, category: Category?) {
         preset.name = name
         preset.iconName = iconName
+        preset.colorHex = colorHex
         preset.category = category
         hapticFeedback()
     }
@@ -324,12 +325,12 @@ struct PresetCard: View {
             // Icon
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: "#2a2a4e")!)
+                    .fill(preset.color.opacity(0.2))
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: preset.iconName)
                     .font(.system(size: 18))
-                    .foregroundColor(Color(hex: "#60A5FA")!)
+                    .foregroundColor(preset.color)
             }
             
             // Info
@@ -438,10 +439,11 @@ struct AddCategorySheet: View {
 struct AddPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
     let categories: [Category]
-    let onSave: (String, String, Category?) -> Void
+    let onSave: (String, String, String, Category?) -> Void
     
     @State private var presetName = ""
     @State private var selectedIcon = "star.fill"
+    @State private var selectedColorHex = "#667eea"
     @State private var selectedCategory: Category?
     
     var body: some View {
@@ -476,6 +478,16 @@ struct AddPresetSheet: View {
                             IconPicker(selectedIcon: $selectedIcon)
                         }
                         
+                        // Color picker
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Color")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal)
+                            
+                            ColorPicker(selectedColorHex: $selectedColorHex)
+                        }
+                        
                         // Category picker
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Category")
@@ -494,7 +506,7 @@ struct AddPresetSheet: View {
                             
                             Button("Create") {
                                 if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedCategory)
+                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory)
                                     dismiss()
                                 }
                             }
@@ -518,18 +530,20 @@ struct EditPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
     let preset: EventPreset
     let categories: [Category]
-    let onSave: (String, String, Category?) -> Void
+    let onSave: (String, String, String, Category?) -> Void
     
     @State private var presetName: String
     @State private var selectedIcon: String
+    @State private var selectedColorHex: String
     @State private var selectedCategory: Category?
     
-    init(preset: EventPreset, categories: [Category], onSave: @escaping (String, String, Category?) -> Void) {
+    init(preset: EventPreset, categories: [Category], onSave: @escaping (String, String, String, Category?) -> Void) {
         self.preset = preset
         self.categories = categories
         self.onSave = onSave
         _presetName = State(initialValue: preset.name)
         _selectedIcon = State(initialValue: preset.iconName)
+        _selectedColorHex = State(initialValue: preset.colorHex ?? "#667eea")
         _selectedCategory = State(initialValue: preset.category)
     }
     
@@ -565,6 +579,16 @@ struct EditPresetSheet: View {
                             IconPicker(selectedIcon: $selectedIcon)
                         }
                         
+                        // Color picker
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Color")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal)
+                            
+                            ColorPicker(selectedColorHex: $selectedColorHex)
+                        }
+                        
                         // Category picker
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Category")
@@ -583,7 +607,7 @@ struct EditPresetSheet: View {
                             
                             Button("Save") {
                                 if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedCategory)
+                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory)
                                     dismiss()
                                 }
                             }
@@ -1087,6 +1111,101 @@ struct TipItem: View {
                 .foregroundColor(.white.opacity(0.9))
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+// MARK: - Color Picker
+struct ColorPicker: View {
+    @Binding var selectedColorHex: String
+    
+    // Curated color palette - vibrant but clean colors
+    private let colorOptions: [(name: String, hex: String)] = [
+        ("Purple", "#667eea"),
+        ("Violet", "#764ba2"),
+        ("Blue", "#60A5FA"),
+        ("Cyan", "#06B6D4"),
+        ("Teal", "#14B8A6"),
+        ("Green", "#10B981"),
+        ("Lime", "#84CC16"),
+        ("Yellow", "#FBBF24"),
+        ("Orange", "#F97316"),
+        ("Red", "#EF4444"),
+        ("Pink", "#EC4899"),
+        ("Rose", "#F43F5E"),
+        ("Indigo", "#6366F1"),
+        ("Sky", "#0EA5E9"),
+        ("Emerald", "#059669"),
+        ("Amber", "#D97706"),
+    ]
+    
+    private let columns = [
+        GridItem(.adaptive(minimum: 50), spacing: 12)
+    ]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Selected color preview
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: selectedColorHex) ?? Color(hex: "#667eea")!)
+                        .frame(width: 56, height: 56)
+                    
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                        .opacity(0.9)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Selected Color")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    
+                    Text(colorName(for: selectedColorHex))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            
+            // Color grid
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(colorOptions, id: \.hex) { color in
+                    Button {
+                        selectedColorHex = color.hex
+                        
+                        // Haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color(hex: color.hex)!)
+                                .frame(width: 44, height: 44)
+                            
+                            if selectedColorHex == color.hex {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .overlay(
+                            Circle()
+                                .stroke(selectedColorHex == color.hex ? Color.white : Color.clear, lineWidth: 3)
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
+    private func colorName(for hex: String) -> String {
+        colorOptions.first(where: { $0.hex == hex })?.name ?? "Custom"
     }
 }
 

@@ -5,6 +5,7 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 final class TrackedEvent {
@@ -18,6 +19,7 @@ final class TrackedEvent {
     var eventName: String
     var categoryName: String
     var iconName: String
+    var colorHex: String?
     
     init(preset: EventPreset, notes: String? = nil) {
         self.id = UUID()
@@ -29,6 +31,15 @@ final class TrackedEvent {
         self.eventName = preset.name
         self.categoryName = preset.category?.name ?? "Uncategorized"
         self.iconName = preset.iconName
+        self.colorHex = preset.colorHex
+    }
+    
+    var color: Color {
+        if let colorHex = colorHex, !colorHex.isEmpty, let color = Color(hex: colorHex) {
+            return color
+        }
+        // Fallback for existing events without colorHex
+        return Color(hex: "#667eea") ?? .purple
     }
     
     var formattedTime: String {

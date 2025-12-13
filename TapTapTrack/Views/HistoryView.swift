@@ -318,12 +318,12 @@ struct EventHistoryCard: View {
             // Icon
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: "#2a2a4e")!)
+                    .fill(event.color.opacity(0.2))
                     .frame(width: 44, height: 44)
                 
                 Image(systemName: event.iconName)
                     .font(.system(size: 18))
-                    .foregroundColor(Color(hex: "#60A5FA")!)
+                    .foregroundColor(event.color)
             }
             
             // Event info

@@ -5,12 +5,14 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 final class EventPreset {
     var id: UUID
     var name: String
     var iconName: String
+    var colorHex: String?
     var createdAt: Date
     
     var category: Category?
@@ -18,12 +20,21 @@ final class EventPreset {
     @Relationship(deleteRule: .cascade, inverse: \TrackedEvent.preset)
     var trackedEvents: [TrackedEvent]?
     
-    init(name: String, iconName: String = "star.fill", category: Category? = nil) {
+    init(name: String, iconName: String = "star.fill", colorHex: String = "#667eea", category: Category? = nil) {
         self.id = UUID()
         self.name = name
         self.iconName = iconName
+        self.colorHex = colorHex
         self.createdAt = Date()
         self.category = category
+    }
+    
+    var color: Color {
+        if let colorHex = colorHex, !colorHex.isEmpty, let color = Color(hex: colorHex) {
+            return color
+        }
+        // Fallback for existing presets without colorHex
+        return Color(hex: "#667eea") ?? .purple
     }
 }
 

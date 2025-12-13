@@ -363,7 +363,7 @@ struct FilterSelector: View {
                             HStack(spacing: 8) {
                                 Image(systemName: preset.iconName)
                                     .font(.system(size: 14))
-                                    .foregroundColor(preset.category?.color ?? Color(hex: "#60A5FA")!)
+                                    .foregroundColor(preset.color)
                                 Text(preset.name)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white)
@@ -519,7 +519,7 @@ struct ChartCardView: View {
         if filterType == .category {
             return selectedCategory?.color ?? Color(hex: "#60A5FA")!
         } else {
-            return selectedPreset?.category?.color ?? Color(hex: "#60A5FA")!
+            return selectedPreset?.color ?? Color(hex: "#60A5FA")!
         }
     }
     
@@ -757,7 +757,7 @@ struct PresetPickerSheet: View {
                                             HStack {
                                                 Image(systemName: preset.iconName)
                                                     .font(.system(size: 18))
-                                                    .foregroundColor(preset.category?.color ?? Color(hex: "#60A5FA")!)
+                                                    .foregroundColor(preset.color)
                                                     .frame(width: 32)
                                                 
                                                 Text(preset.name)
@@ -769,7 +769,7 @@ struct PresetPickerSheet: View {
                                                 if selectedPreset?.id == preset.id {
                                                     Image(systemName: "checkmark")
                                                         .font(.system(size: 14, weight: .semibold))
-                                                        .foregroundColor(preset.category?.color ?? Color(hex: "#60A5FA")!)
+                                                        .foregroundColor(preset.color)
                                                 }
                                             }
                                             .padding(.horizontal, 20)
@@ -777,7 +777,7 @@ struct PresetPickerSheet: View {
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .fill(selectedPreset?.id == preset.id ?
-                                                          (preset.category?.color ?? Color(hex: "#60A5FA")!).opacity(0.2) :
+                                                          preset.color.opacity(0.2) :
                                                           Color(hex: "#252540")!
                                                     )
                                             )

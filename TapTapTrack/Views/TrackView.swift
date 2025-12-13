@@ -295,8 +295,8 @@ struct EventPresetCard: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(hex: "#667eea")!,
-                            Color(hex: "#764ba2")!
+                            preset.color,
+                            preset.color.opacity(0.7)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

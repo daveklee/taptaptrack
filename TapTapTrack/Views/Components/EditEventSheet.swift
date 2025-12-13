@@ -38,7 +38,7 @@ struct EditEventSheet: View {
                                 Circle()
                                     .fill(
                                         LinearGradient(
-                                            colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                            colors: [event.color, event.color.opacity(0.7)],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
@@ -211,7 +211,7 @@ struct TrackConfirmationSheet: View {
                     HStack(spacing: 12) {
                         Image(systemName: event.iconName)
                             .font(.system(size: 18))
-                            .foregroundColor(Color(hex: "#60A5FA")!)
+                            .foregroundColor(event.color)
                         
                         Text(event.eventName)
                             .font(.system(size: 18, weight: .semibold))
@@ -328,12 +328,12 @@ struct QuickNoteSheet: View {
                     HStack(spacing: 12) {
                         ZStack {
                             Circle()
-                                .fill(Color(hex: "#2a2a4e")!)
+                                .fill(event.color.opacity(0.2))
                                 .frame(width: 44, height: 44)
                             
                             Image(systemName: event.iconName)
                                 .font(.system(size: 18))
-                                .foregroundColor(Color(hex: "#60A5FA")!)
+                                .foregroundColor(event.color)
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
