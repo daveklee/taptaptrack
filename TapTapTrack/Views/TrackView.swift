@@ -11,11 +11,10 @@ struct TrackView: View {
     @Query(sort: \Category.createdAt) private var categories: [Category]
     @Query(sort: \TrackedEvent.timestamp, order: .reverse) private var allEvents: [TrackedEvent]
     
-    // Confirmation states
-    @State private var showingConfirmation = false
-    @State private var showingQuickNote = false
-    @State private var showingEditEvent = false
-    @State private var trackedEvent: TrackedEvent?
+    // Sheet item states - using separate state for each sheet type
+    @State private var eventForConfirmation: TrackedEvent?
+    @State private var eventForQuickNote: TrackedEvent?
+    @State private var eventForEdit: TrackedEvent?
     
     private var eventsToday: Int {
         let calendar = Calendar.current
@@ -89,50 +88,52 @@ struct TrackView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingConfirmation) {
-            if let event = trackedEvent {
-                TrackConfirmationSheet(
-                    event: event,
-                    onAddNote: {
-                        showingQuickNote = true
-                    },
-                    onEdit: {
-                        showingEditEvent = true
-                    },
-                    onDelete: {
-                        deleteEvent(event)
+        .sheet(item: $eventForConfirmation) { event in
+            TrackConfirmationSheet(
+                event: event,
+                onAddNote: {
+                    // Store event reference before confirmation dismisses
+                    let eventToEdit = event
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        eventForQuickNote = eventToEdit
                     }
-                )
-                .presentationDetents([.height(540)])
-                .presentationDragIndicator(.visible)
-            }
+                },
+                onEdit: {
+                    // Store event reference before confirmation dismisses
+                    let eventToEdit = event
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        self.eventForEdit = eventToEdit
+                    }
+                },
+                onDelete: {
+                    deleteEvent(event)
+                }
+            )
+            .presentationDetents([.height(540)])
+            .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showingQuickNote) {
-            if let event = trackedEvent {
-                QuickNoteSheet(event: event) { notes in
+        .sheet(item: $eventForQuickNote) { event in
+            QuickNoteSheet(event: event) { notes in
+                event.notes = notes
+                hapticFeedback()
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $eventForEdit) { event in
+            EditEventSheet(
+                event: event,
+                onSave: { newDate, notes in
+                    event.timestamp = newDate
                     event.notes = notes
                     hapticFeedback()
+                },
+                onDelete: {
+                    deleteEvent(event)
                 }
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-            }
-        }
-        .sheet(isPresented: $showingEditEvent) {
-            if let event = trackedEvent {
-                EditEventSheet(
-                    event: event,
-                    onSave: { newDate, notes in
-                        event.timestamp = newDate
-                        event.notes = notes
-                        hapticFeedback()
-                    },
-                    onDelete: {
-                        deleteEvent(event)
-                    }
-                )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-            }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
     
@@ -140,9 +141,8 @@ struct TrackView: View {
         let event = TrackedEvent(preset: preset, notes: notes)
         modelContext.insert(event)
         
-        // Store reference and show confirmation
-        trackedEvent = event
-        showingConfirmation = true
+        // Show confirmation sheet with the new event
+        eventForConfirmation = event
         
         // Haptic feedback
         hapticFeedback()
@@ -152,9 +152,8 @@ struct TrackView: View {
         let event = TrackedEvent(preset: preset)
         modelContext.insert(event)
         
-        // Store reference and show edit sheet directly
-        trackedEvent = event
-        showingEditEvent = true
+        // Show edit sheet directly with the new event
+        eventForEdit = event
         
         // Haptic feedback
         hapticFeedback()
@@ -163,7 +162,6 @@ struct TrackView: View {
     private func deleteEvent(_ event: TrackedEvent) {
         withAnimation {
             modelContext.delete(event)
-            trackedEvent = nil
             
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()

@@ -13,8 +13,7 @@ struct HistoryView: View {
     
     @State private var showingExportSheet = false
     @State private var exportURL: URL?
-    @State private var showingEditSheet = false
-    @State private var selectedEvent: TrackedEvent?
+    @State private var eventToEdit: TrackedEvent?
     
     private var eventsToday: Int {
         let calendar = Calendar.current
@@ -100,8 +99,7 @@ struct HistoryView: View {
                                     date: group.date,
                                     events: group.events,
                                     onEdit: { event in
-                                        selectedEvent = event
-                                        showingEditSheet = true
+                                        eventToEdit = event
                                     },
                                     onDelete: { event in
                                         deleteEvent(event)
@@ -125,22 +123,20 @@ struct HistoryView: View {
                 ShareSheet(activityItems: [url])
             }
         }
-        .sheet(isPresented: $showingEditSheet) {
-            if let event = selectedEvent {
-                EditEventSheet(
-                    event: event,
-                    onSave: { newDate, notes in
-                        event.timestamp = newDate
-                        event.notes = notes
-                        hapticFeedback()
-                    },
-                    onDelete: {
-                        deleteEvent(event)
-                    }
-                )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-            }
+        .sheet(item: $eventToEdit) { event in
+            EditEventSheet(
+                event: event,
+                onSave: { newDate, notes in
+                    event.timestamp = newDate
+                    event.notes = notes
+                    hapticFeedback()
+                },
+                onDelete: {
+                    deleteEvent(event)
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
     

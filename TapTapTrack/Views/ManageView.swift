@@ -13,9 +13,8 @@ struct ManageView: View {
     
     @State private var showingAddCategory = false
     @State private var showingAddPreset = false
-    @State private var showingEditPreset = false
     @State private var showingAbout = false
-    @State private var selectedPreset: EventPreset?
+    @State private var presetToEdit: EventPreset?
     
     var body: some View {
         ZStack {
@@ -44,8 +43,7 @@ struct ManageView: View {
                         presets: presets,
                         onAdd: { showingAddPreset = true },
                         onEdit: { preset in
-                            selectedPreset = preset
-                            showingEditPreset = true
+                            presetToEdit = preset
                         },
                         onDelete: deletePreset
                     )
@@ -84,14 +82,12 @@ struct ManageView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showingEditPreset) {
-            if let preset = selectedPreset {
-                EditPresetSheet(preset: preset, categories: categories) { name, iconName, category in
-                    updatePreset(preset, name: name, iconName: iconName, category: category)
-                }
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+        .sheet(item: $presetToEdit) { preset in
+            EditPresetSheet(preset: preset, categories: categories) { name, iconName, category in
+                updatePreset(preset, name: name, iconName: iconName, category: category)
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingAbout) {
             AboutSheet()

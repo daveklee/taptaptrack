@@ -227,10 +227,8 @@ struct TrackConfirmationSheet: View {
                 VStack(spacing: 12) {
                     Button {
                         cancelAutoDismiss()
+                        onAddNote()
                         dismiss()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            onAddNote()
-                        }
                     } label: {
                         HStack {
                             Image(systemName: "note.text")
@@ -241,10 +239,8 @@ struct TrackConfirmationSheet: View {
                     
                     Button {
                         cancelAutoDismiss()
+                        onEdit()
                         dismiss()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            onEdit()
-                        }
                     } label: {
                         HStack {
                             Image(systemName: "pencil")
