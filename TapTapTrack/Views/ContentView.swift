@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .track
     
     enum Tab {
-        case track, history, manage
+        case track, history, trends, manage
     }
     
     var body: some View {
@@ -21,6 +21,8 @@ struct ContentView: View {
                     TrackView()
                 case .history:
                     HistoryView()
+                case .trends:
+                    TrendsView()
                 case .manage:
                     ManageView()
                 }
@@ -56,6 +58,16 @@ struct CustomTabBar: View {
             ) {
                 withAnimation(.spring(response: 0.3)) {
                     selectedTab = .history
+                }
+            }
+            
+            TabBarButton(
+                icon: "chart.line.uptrend.xyaxis",
+                title: "Trends",
+                isSelected: selectedTab == .trends
+            ) {
+                withAnimation(.spring(response: 0.3)) {
+                    selectedTab = .trends
                 }
             }
             

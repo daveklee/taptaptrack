@@ -18,6 +18,7 @@
 		2A0000110000000000000001 /* ManageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000120000000000000001 /* ManageView.swift */; };
 		2A0000130000000000000001 /* AppBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000140000000000000001 /* AppBackground.swift */; };
 		2A0000270000000000000001 /* EditEventSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000280000000000000001 /* EditEventSheet.swift */; };
+		2A0000290000000000000001 /* TrendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00002A0000000000000001 /* TrendsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		2A0000140000000000000001 /* AppBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackground.swift; sourceTree = "<group>"; };
 		2A0000150000000000000001 /* TapTapTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TapTapTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A0000280000000000000001 /* EditEventSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditEventSheet.swift; sourceTree = "<group>"; };
+		2A00002A0000000000000001 /* TrendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +91,7 @@
 				2A0000040000000000000001 /* ContentView.swift */,
 				2A00000E0000000000000001 /* TrackView.swift */,
 				2A0000100000000000000001 /* HistoryView.swift */,
+				2A00002A0000000000000001 /* TrendsView.swift */,
 				2A0000120000000000000001 /* ManageView.swift */,
 				2A00001C0000000000000001 /* Components */,
 			);
@@ -180,6 +183,7 @@
 				2A00000B0000000000000001 /* TrackedEvent.swift in Sources */,
 				2A00000D0000000000000001 /* TrackView.swift in Sources */,
 				2A00000F0000000000000001 /* HistoryView.swift in Sources */,
+				2A0000290000000000000001 /* TrendsView.swift in Sources */,
 				2A0000110000000000000001 /* ManageView.swift in Sources */,
 				2A0000130000000000000001 /* AppBackground.swift in Sources */,
 				2A0000270000000000000001 /* EditEventSheet.swift in Sources */,
