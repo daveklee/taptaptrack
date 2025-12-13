@@ -1011,7 +1011,13 @@ struct AboutSheet: View {
                             HowToItem(
                                 icon: "slider.horizontal.3",
                                 title: "Customize",
-                                description: "Use the Manage tab to create your own categories and event presets with custom icons."
+                                description: "Use the Manage tab to create your own categories and event presets with custom icons and colors."
+                            )
+                            
+                            HowToItem(
+                                icon: "chart.line.uptrend.xyaxis",
+                                title: "View Trends",
+                                description: "Switch to the Trends tab to see charts and statistics about your tracked events over time."
                             )
                             
                             HowToItem(
@@ -1034,7 +1040,9 @@ struct AboutSheet: View {
                             TipItem(text: "Events auto-save when you tap, so tracking is instant")
                             TipItem(text: "The confirmation popup auto-dismisses after 5 seconds")
                             TipItem(text: "Use categories to organize similar events together")
+                            TipItem(text: "Pick custom colors for each preset to make them easy to identify")
                             TipItem(text: "Add notes to remember context about specific events")
+                            TipItem(text: "Check the Trends tab to see patterns in your tracking over time")
                         }
                         .padding(20)
                         .background(Color(hex: "#252540")!)
@@ -1042,7 +1050,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.0")
+                        Text("Version 1.1")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)
