@@ -15,6 +15,8 @@ struct ManageView: View {
     @State private var showingAddPreset = false
     @State private var showingAbout = false
     @State private var presetToEdit: EventPreset?
+    @State private var presetToDelete: EventPreset?
+    @State private var showingDeleteConfirmation = false
     
     var body: some View {
         ZStack {
@@ -45,7 +47,10 @@ struct ManageView: View {
                         onEdit: { preset in
                             presetToEdit = preset
                         },
-                        onDelete: deletePreset
+                        onDelete: { preset in
+                            presetToDelete = preset
+                            showingDeleteConfirmation = true
+                        }
                     )
                     
                     // About & Help Section
@@ -94,6 +99,36 @@ struct ManageView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .confirmationDialog(
+            "Delete \"\(presetToDelete?.name ?? "Preset")\"?",
+            isPresented: $showingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Preset & All Events", role: .destructive) {
+                if let preset = presetToDelete {
+                    deletePresetAndEvents(preset)
+                }
+                presetToDelete = nil
+            }
+            
+            Button("Delete Preset Only", role: .destructive) {
+                if let preset = presetToDelete {
+                    deletePresetKeepEvents(preset)
+                }
+                presetToDelete = nil
+            }
+            
+            Button("Cancel", role: .cancel) {
+                presetToDelete = nil
+            }
+        } message: {
+            let eventCount = presetToDelete?.trackedEvents?.count ?? 0
+            if eventCount > 0 {
+                Text("This preset has \(eventCount) tracked event\(eventCount == 1 ? "" : "s"). You can delete everything, or keep the events and only remove the preset.")
+            } else {
+                Text("This will remove the preset. No tracked events are associated with it.")
+            }
+        }
     }
     
     private func addCategory(name: String) {
@@ -121,6 +156,25 @@ struct ManageView: View {
     }
     
     private func deletePreset(_ preset: EventPreset) {
+        modelContext.delete(preset)
+        hapticFeedback()
+    }
+    
+    private func deletePresetAndEvents(_ preset: EventPreset) {
+        // The cascade delete rule will automatically delete all associated events
+        modelContext.delete(preset)
+        hapticFeedback()
+    }
+    
+    private func deletePresetKeepEvents(_ preset: EventPreset) {
+        // Unlink all tracked events from this preset before deleting
+        // The events will retain their denormalized data (eventName, categoryName, iconName)
+        if let events = preset.trackedEvents {
+            for event in events {
+                event.preset = nil
+            }
+        }
+        // Now delete the preset without cascading to events
         modelContext.delete(preset)
         hapticFeedback()
     }
