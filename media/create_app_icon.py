@@ -9,7 +9,7 @@ import os
 
 # Configuration
 ICON_SIZE = 1024
-LOGO_SIZE = 580  # Size of logo on the icon
+LOGO_SIZE = 920  # Size of logo on the icon (increased to fill more of the square)
 OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(OUTPUT_DIR, "taptaptrack_logo.png")
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "AppIcon_1024x1024.png")
