@@ -8,7 +8,7 @@ import SwiftData
 
 struct TrackView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Category.createdAt) private var categories: [Category]
+    @Query(sort: \Category.order) private var categories: [Category]
     @Query(sort: \TrackedEvent.timestamp, order: .reverse) private var allEvents: [TrackedEvent]
     
     // Location manager

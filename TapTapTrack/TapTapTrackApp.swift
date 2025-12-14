@@ -27,25 +27,42 @@ struct TapTapTrackApp: App {
                 let context = container.mainContext
                 
                 // Check if we already have categories
-                let categoryDescriptor = FetchDescriptor<Category>()
+                let categoryDescriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.createdAt)])
                 let existingCategories = try? context.fetch(categoryDescriptor)
                 
                 // Access existing categories to ensure migration completes properly
                 // The default value (= false) should handle migration automatically
                 if let categories = existingCategories, !categories.isEmpty {
                     // Just accessing the property ensures it's initialized with default value
-                    for category in categories {
-                        let _ = category.locationTrackingEnabled
+                    var needsOrderUpdate = false
+                    // Check if all categories have order 0 (indicating they need migration)
+                    let allHaveDefaultOrder = categories.allSatisfy { $0.order == 0 }
+                    
+                    if allHaveDefaultOrder {
+                        // Set order based on createdAt (they're already sorted by createdAt)
+                        for (index, category) in categories.enumerated() {
+                            let _ = category.locationTrackingEnabled
+                            category.order = index
+                            needsOrderUpdate = true
+                        }
+                    } else {
+                        // Just ensure locationTrackingEnabled is accessed for migration
+                        for category in categories {
+                            let _ = category.locationTrackingEnabled
+                        }
                     }
-                    try? context.save()
+                    
+                    if needsOrderUpdate {
+                        try? context.save()
+                    }
                 }
                 
                 if existingCategories?.isEmpty ?? true {
-                    // Seed categories
-                    let work = Category(name: "Work", colorHex: "#6366F1")
-                    let personal = Category(name: "Personal", colorHex: "#8B5CF6")
-                    let health = Category(name: "Health", colorHex: "#EC4899")
-                    let social = Category(name: "Social", colorHex: "#14B8A6")
+                    // Seed categories with explicit order
+                    let work = Category(name: "Work", colorHex: "#6366F1", locationTrackingEnabled: false, order: 0)
+                    let personal = Category(name: "Personal", colorHex: "#8B5CF6", locationTrackingEnabled: false, order: 1)
+                    let health = Category(name: "Health", colorHex: "#EC4899", locationTrackingEnabled: false, order: 2)
+                    let social = Category(name: "Social", colorHex: "#14B8A6", locationTrackingEnabled: false, order: 3)
                     
                     context.insert(work)
                     context.insert(personal)

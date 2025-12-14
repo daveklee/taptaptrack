@@ -14,16 +14,18 @@ final class Category {
     var colorHex: String
     var createdAt: Date
     var locationTrackingEnabled: Bool = false
+    var order: Int = 0
     
     @Relationship(deleteRule: .cascade, inverse: \EventPreset.category)
     var presets: [EventPreset]?
     
-    init(name: String, colorHex: String = "#6366F1", locationTrackingEnabled: Bool = false) {
+    init(name: String, colorHex: String = "#6366F1", locationTrackingEnabled: Bool = false, order: Int = 0) {
         self.id = UUID()
         self.name = name
         self.colorHex = colorHex
         self.createdAt = Date()
         self.locationTrackingEnabled = locationTrackingEnabled
+        self.order = order
     }
     
     var color: Color {

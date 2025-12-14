@@ -8,7 +8,7 @@ import SwiftData
 
 struct ManageView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Category.createdAt) private var categories: [Category]
+    @Query(sort: \Category.order) private var categories: [Category]
     @Query(sort: \EventPreset.createdAt) private var presets: [EventPreset]
     
     @State private var showingAddCategory = false
@@ -41,7 +41,8 @@ struct ManageView: View {
                         onEdit: { category in
                             categoryToEdit = category
                         },
-                        onDelete: deleteCategory
+                        onDelete: deleteCategory,
+                        onMove: reorderCategories
                     )
                     
                     // Event Presets Section
@@ -143,7 +144,9 @@ struct ManageView: View {
     }
     
     private func addCategory(name: String, locationTrackingEnabled: Bool = false) {
-        let category = Category(name: name, locationTrackingEnabled: locationTrackingEnabled)
+        // Set order to be after the last category
+        let maxOrder = categories.map { $0.order }.max() ?? -1
+        let category = Category(name: name, locationTrackingEnabled: locationTrackingEnabled, order: maxOrder + 1)
         modelContext.insert(category)
         hapticFeedback()
     }
@@ -197,6 +200,20 @@ struct ManageView: View {
         hapticFeedback()
     }
     
+    private func reorderCategories(from source: IndexSet, to destination: Int) {
+        var reorderedCategories = categories
+        
+        // Move items
+        reorderedCategories.move(fromOffsets: source, toOffset: destination)
+        
+        // Update order values
+        for (index, category) in reorderedCategories.enumerated() {
+            category.order = index
+        }
+        
+        hapticFeedback()
+    }
+    
     private func hapticFeedback() {
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
@@ -209,11 +226,9 @@ struct CategoriesSection: View {
     let onAdd: () -> Void
     let onEdit: (Category) -> Void
     let onDelete: (Category) -> Void
+    let onMove: (IndexSet, Int) -> Void
     
-    private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
-    ]
+    @State private var editMode: EditMode = .inactive
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -224,37 +239,78 @@ struct CategoriesSection: View {
                 
                 Spacer()
                 
-                Button(action: onAdd) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                        Text("Add")
+                HStack(spacing: 12) {
+                    // Edit/Done button for reordering
+                    Button(action: {
+                        withAnimation {
+                            editMode = editMode == .active ? .inactive : .active
+                        }
+                    }) {
+                        Text(editMode == .active ? "Done" : "Move")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .fixedSize(horizontal: true, vertical: false)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(editMode == .active ? Color(hex: "#667eea")! : Color(hex: "#2a2a4e")!)
+                            )
                     }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
-                            startPoint: .leading,
-                            endPoint: .trailing
+                    
+                    Button(action: onAdd) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                            Text("Add")
+                        }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
                         )
-                    )
-                    .cornerRadius(20)
+                        .cornerRadius(20)
+                    }
                 }
             }
             .padding(.horizontal, 20)
             
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(categories) { category in
-                    CategoryCard(
-                        category: category,
-                        onEdit: { onEdit(category) },
-                        onDelete: { onDelete(category) }
-                    )
+            if categories.isEmpty {
+                Text("No categories yet. Tap Add to create one.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 20)
+            } else {
+                List {
+                    ForEach(categories) { category in
+                        CategoryCard(
+                            category: category,
+                            onEdit: { onEdit(category) },
+                            onDelete: { onDelete(category) },
+                            showDragHandle: editMode == .active
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(
+                            top: 0,
+                            leading: 20,
+                            bottom: 12,
+                            trailing: editMode == .active ? 16 : 20
+                        ))
+                    }
+                    .onMove(perform: editMode == .active ? onMove : nil)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.editMode, $editMode)
+                .frame(height: CGFloat(categories.count) * 72 + 20)
             }
-            .padding(.horizontal, 20)
         }
     }
 }
@@ -263,6 +319,7 @@ struct CategoryCard: View {
     let category: Category
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let showDragHandle: Bool
     
     var body: some View {
         HStack {
@@ -282,19 +339,23 @@ struct CategoryCard: View {
             
             Spacer()
             
-            // Edit button
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#60A5FA")!)
+            // Edit button (hidden in edit mode)
+            if !showDragHandle {
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(hex: "#60A5FA")!)
+                }
+                .padding(.trailing, 8)
             }
-            .padding(.trailing, 8)
             
-            // Delete button
-            Button(action: onDelete) {
-                Image(systemName: "trash.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#EF4444")!)
+            // Delete button (hidden in edit mode)
+            if !showDragHandle {
+                Button(action: onDelete) {
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(hex: "#EF4444")!)
+                }
             }
         }
         .padding(.horizontal, 16)
