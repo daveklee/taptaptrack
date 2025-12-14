@@ -16,6 +16,7 @@ This is a simple iOS app for tracking life events with just one tap. Use it, mod
 - Organize events into custom categories
 - Choose from 200+ icons for your event presets
 - Pick custom colors for each preset
+- **Optional location tracking**: Enable location tracking per category (disabled by default) to automatically capture GPS coordinates and nearby business names. If enabled, only anonymous coordinates are sent to Apple's servers to fetch business names. Your tracked events and personal data remain private and stored locally.
 - View your history and export to CSV
 - See trends and statistics
 

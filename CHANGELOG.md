@@ -2,6 +2,41 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.2] - 2025-01-XX
+
+### Added
+- **Location tracking for events**: Track events with location data and nearby business information
+  - **Category-based location tracking**: Enable location tracking per category when creating or editing categories
+  - **Automatic location capture**: When tracking events in location-enabled categories, the app automatically captures:
+    - GPS coordinates (latitude and longitude)
+    - Nearby business names using Apple's MapKit
+    - Full address information
+  - **Business name detection**: Automatically identifies and suggests nearby businesses, restaurants, and points of interest
+  - **Location editing**: 
+    - Edit location names directly in the confirmation screen
+    - Select from a list of nearby businesses
+    - Enter custom location names
+    - Edit coordinates manually in the edit screen
+  - **Prominent location display**: Location names are prominently featured in the history view for easy identification
+  - **Flexible location data**: 
+    - Location name is optional - you can still check-in with a single tap
+    - Coordinates can be captured even without internet connection
+    - Business names require internet connectivity for MapKit searches
+
+### Changed
+- Enhanced event confirmation screen to display location information when available
+- Improved edit screen with location data editing capabilities
+- Updated history view to prominently display location names for events with location data
+- Category management now includes location tracking toggle
+
+### Technical
+- Added `locationTrackingEnabled` property to `Category` model
+- Added location fields (`latitude`, `longitude`, `locationName`, `address`) to `TrackedEvent` model
+- Implemented `LocationManager` service using CoreLocation and MapKit
+- Added location permission handling (`NSLocationWhenInUseUsageDescription`)
+- Integrated MapKit's `MKLocalSearch` for business discovery
+- Implemented reverse geocoding for address information
+
 ## [1.1] - 2025-01-XX
 
 ### Added

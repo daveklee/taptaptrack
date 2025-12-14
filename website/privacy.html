@@ -36,7 +36,7 @@
             <div class="policy-header">
                 <span class="section-tag">Legal</span>
                 <h1>Privacy Policy</h1>
-                <p class="policy-date">Last Updated: December 13, 2025</p>
+                <p class="policy-date">Last Updated: January 14, 2025</p>
             </div>
 
             <div class="policy-content">
@@ -44,7 +44,7 @@
                     <div class="highlight-icon">🔒</div>
                     <div class="highlight-text">
                         <h3>The Short Version</h3>
-                        <p><strong>Tap Tap Track collects zero data.</strong> All your information is stored locally on your device and never transmitted to any server. We don't know who you are, what you track, or how you use the app. That's by design.</p>
+                        <p><strong>Tap Tap Track keeps your data private.</strong> All your information is stored locally on your device. Location tracking is completely optional. If you enable it, minimal anonymous data is sent to Apple's servers to fetch business names, but your personal data and tracked events remain private and never leave your device.</p>
                     </div>
                 </div>
 
@@ -64,7 +64,7 @@
                             <li><strong>No usage analytics</strong> — We don't track how you use the app, which features you access, or how often you open the app.</li>
                             <li><strong>No event data</strong> — The events you track, notes you write, and categories you create are never sent to us.</li>
                             <li><strong>No device information</strong> — We don't collect your device model, operating system version, or any device identifiers.</li>
-                            <li><strong>No location data</strong> — We don't access or store your location.</li>
+                            <li><strong>No location data (by default)</strong> — Location tracking is completely optional and disabled by default. If you choose to enable it for a category, see the "Optional Location Tracking" section below.</li>
                             <li><strong>No crash reports</strong> — We don't collect or receive crash reports or error logs.</li>
                         </ul>
                     </div>
@@ -78,6 +78,7 @@
                         <li>Notes and context you add to events</li>
                         <li>Categories you create</li>
                         <li>Event presets and their configurations</li>
+                        <li>Location data (if you enable location tracking): GPS coordinates, business names, and addresses - all stored locally on your device</li>
                     </ul>
                     <p>This data:</p>
                     <ul>
@@ -89,10 +90,40 @@
                 </section>
 
                 <section class="policy-section">
+                    <h2>Optional Location Tracking</h2>
+                    <div class="policy-box">
+                        <h4>Location tracking is completely optional and disabled by default.</h4>
+                        <p>Tap Tap Track includes an optional location tracking feature that you can enable per category. This feature allows the app to automatically capture GPS coordinates and nearby business names when you track events in location-enabled categories.</p>
+                        <p><strong>How it works:</strong></p>
+                        <ul>
+                            <li><strong>You control it:</strong> Location tracking must be explicitly enabled for each category. It is disabled by default for all categories.</li>
+                            <li><strong>Your data stays private:</strong> All tracked events, location names, coordinates, and notes are stored locally on your device and never sent to our servers or any third-party servers.</li>
+                            <li><strong>Minimal anonymous data to Apple:</strong> When location tracking is enabled and you track an event, the app uses Apple's MapKit service to search for nearby businesses. This requires sending your current GPS coordinates (latitude and longitude only) to Apple's servers to fetch business names. This data is sent anonymously and is subject to <a href="https://www.apple.com/privacy/" target="_blank" rel="noopener">Apple's Privacy Policy</a>.</li>
+                            <li><strong>No personal information:</strong> Only anonymous coordinates are sent to Apple. No personal information, device identifiers, or any other data is transmitted.</li>
+                            <li><strong>You can disable it anytime:</strong> You can disable location tracking for any category at any time. Once disabled, no location data will be captured or sent.</li>
+                        </ul>
+                        <p><strong>What data is sent to Apple:</strong></p>
+                        <ul>
+                            <li>GPS coordinates (latitude and longitude) - anonymous, no personal identifiers</li>
+                            <li>Optional search query if you search for a specific business name</li>
+                        </ul>
+                        <p><strong>What data is NOT sent:</strong></p>
+                        <ul>
+                            <li>Your name, email, or any personal information</li>
+                            <li>Device identifiers or account information</li>
+                            <li>The events you track or any notes you write</li>
+                            <li>Your location history or patterns</li>
+                        </ul>
+                        <p>All location data (coordinates, business names, addresses) that is captured is stored locally on your device only and is never transmitted to our servers or any third-party servers other than Apple's MapKit service for the purpose of fetching business names.</p>
+                    </div>
+                </section>
+
+                <section class="policy-section">
                     <h2>Network Access</h2>
                     <div class="policy-box highlight">
-                        <h4>Tap Tap Track does not connect to the internet.</h4>
-                        <p>The app has no network capabilities. It cannot and does not make any network requests. Your data physically cannot leave your device through our app because the app has no ability to transmit data.</p>
+                        <h4>Tap Tap Track operates offline by default.</h4>
+                        <p>By default, the app has no network capabilities and operates entirely offline. Your tracked events, notes, categories, and all other data remain on your device.</p>
+                        <p><strong>Optional network access:</strong> If you enable location tracking for a category, the app will make network requests to Apple's MapKit service only when you track an event in that category. These requests are limited to fetching business names based on your coordinates. No other network requests are made, and all your personal data remains on your device.</p>
                     </div>
                 </section>
 
@@ -106,6 +137,7 @@
                         <li>Social media SDKs</li>
                         <li>Any third-party frameworks that collect data</li>
                     </ul>
+                    <p><strong>Apple MapKit (Optional):</strong> If you enable location tracking, the app uses Apple's MapKit framework to search for nearby businesses. This service is provided by Apple and is subject to <a href="https://www.apple.com/privacy/" target="_blank" rel="noopener">Apple's Privacy Policy</a>. We do not have access to any data that Apple may collect through this service.</p>
                 </section>
 
                 <section class="policy-section">
@@ -186,7 +218,11 @@
                         </div>
                         <div class="summary-item">
                             <span class="summary-icon">✓</span>
-                            <span>No network access</span>
+                            <span>Offline by default</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-icon">✓</span>
+                            <span>Optional location tracking</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-icon">✓</span>

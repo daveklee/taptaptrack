@@ -342,6 +342,20 @@ struct EventHistoryCard: View {
                         .cornerRadius(8)
                 }
                 
+                // Location name (prominently displayed)
+                if let locationName = event.locationName, !locationName.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "#60A5FA")!)
+                        
+                        Text(locationName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color(hex: "#60A5FA")!)
+                    }
+                    .padding(.top, 2)
+                }
+                
                 HStack(spacing: 4) {
                     Image(systemName: "clock")
                         .font(.system(size: 12))

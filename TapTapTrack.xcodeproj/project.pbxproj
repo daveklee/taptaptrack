@@ -19,6 +19,7 @@
 		2A0000130000000000000001 /* AppBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000140000000000000001 /* AppBackground.swift */; };
 		2A0000270000000000000001 /* EditEventSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000280000000000000001 /* EditEventSheet.swift */; };
 		2A0000290000000000000001 /* TrendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00002A0000000000000001 /* TrendsView.swift */; };
+		2A00002B0000000000000001 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00002C0000000000000001 /* LocationManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		2A0000150000000000000001 /* TapTapTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TapTapTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A0000280000000000000001 /* EditEventSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditEventSheet.swift; sourceTree = "<group>"; };
 		2A00002A0000000000000001 /* TrendsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendsView.swift; sourceTree = "<group>"; };
+		2A00002C0000000000000001 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +64,7 @@
 				2A0000020000000000000001 /* TapTapTrackApp.swift */,
 				2A00001A0000000000000001 /* Models */,
 				2A00001B0000000000000001 /* Views */,
+				2A00002D0000000000000001 /* Services */,
 				2A0000060000000000000001 /* Assets.xcassets */,
 			);
 			path = TapTapTrack;
@@ -105,6 +108,14 @@
 				2A0000280000000000000001 /* EditEventSheet.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		2A00002D0000000000000001 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2A00002C0000000000000001 /* LocationManager.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -187,6 +198,7 @@
 				2A0000110000000000000001 /* ManageView.swift in Sources */,
 				2A0000130000000000000001 /* AppBackground.swift in Sources */,
 				2A0000270000000000000001 /* EditEventSheet.swift in Sources */,
+				2A00002B0000000000000001 /* LocationManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,6 +337,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tap Tap Track";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Tap Tap Track needs your location to track events with location data and identify nearby businesses.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -335,7 +348,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taptaptrack.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -360,6 +373,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tap Tap Track";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Tap Tap Track needs your location to track events with location data and identify nearby businesses.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -370,7 +384,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taptaptrack.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

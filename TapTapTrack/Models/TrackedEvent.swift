@@ -21,7 +21,13 @@ final class TrackedEvent {
     var iconName: String
     var colorHex: String?
     
-    init(preset: EventPreset, notes: String? = nil) {
+    // Location data (optional, only for categories with location tracking enabled)
+    var latitude: Double?
+    var longitude: Double?
+    var locationName: String?
+    var address: String?
+    
+    init(preset: EventPreset, notes: String? = nil, latitude: Double? = nil, longitude: Double? = nil, locationName: String? = nil, address: String? = nil) {
         self.id = UUID()
         self.timestamp = Date()
         self.notes = notes
@@ -32,6 +38,12 @@ final class TrackedEvent {
         self.categoryName = preset.category?.name ?? "Uncategorized"
         self.iconName = preset.iconName
         self.colorHex = preset.colorHex
+        
+        // Location data
+        self.latitude = latitude
+        self.longitude = longitude
+        self.locationName = locationName
+        self.address = address
     }
     
     var color: Color {

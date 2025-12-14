@@ -22,13 +22,23 @@ struct TapTapTrackApp: App {
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             
-            // Seed initial data if needed
+            // Seed initial data if needed and handle migration
             Task { @MainActor in
                 let context = container.mainContext
                 
                 // Check if we already have categories
                 let categoryDescriptor = FetchDescriptor<Category>()
                 let existingCategories = try? context.fetch(categoryDescriptor)
+                
+                // Access existing categories to ensure migration completes properly
+                // The default value (= false) should handle migration automatically
+                if let categories = existingCategories, !categories.isEmpty {
+                    // Just accessing the property ensures it's initialized with default value
+                    for category in categories {
+                        let _ = category.locationTrackingEnabled
+                    }
+                    try? context.save()
+                }
                 
                 if existingCategories?.isEmpty ?? true {
                     // Seed categories

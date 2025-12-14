@@ -14,6 +14,7 @@ struct ManageView: View {
     @State private var showingAddCategory = false
     @State private var showingAddPreset = false
     @State private var showingAbout = false
+    @State private var categoryToEdit: Category?
     @State private var presetToEdit: EventPreset?
     @State private var presetToDelete: EventPreset?
     @State private var showingDeleteConfirmation = false
@@ -37,6 +38,9 @@ struct ManageView: View {
                     CategoriesSection(
                         categories: categories,
                         onAdd: { showingAddCategory = true },
+                        onEdit: { category in
+                            categoryToEdit = category
+                        },
                         onDelete: deleteCategory
                     )
                     
@@ -74,8 +78,15 @@ struct ManageView: View {
             }
         }
         .sheet(isPresented: $showingAddCategory) {
-            AddCategorySheet { name in
-                addCategory(name: name)
+            AddCategorySheet { name, locationTrackingEnabled in
+                addCategory(name: name, locationTrackingEnabled: locationTrackingEnabled)
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $categoryToEdit) { category in
+            EditCategorySheet(category: category) { name, locationTrackingEnabled in
+                updateCategory(category, name: name, locationTrackingEnabled: locationTrackingEnabled)
             }
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
@@ -131,14 +142,20 @@ struct ManageView: View {
         }
     }
     
-    private func addCategory(name: String) {
-        let category = Category(name: name)
+    private func addCategory(name: String, locationTrackingEnabled: Bool = false) {
+        let category = Category(name: name, locationTrackingEnabled: locationTrackingEnabled)
         modelContext.insert(category)
         hapticFeedback()
     }
     
     private func deleteCategory(_ category: Category) {
         modelContext.delete(category)
+        hapticFeedback()
+    }
+    
+    private func updateCategory(_ category: Category, name: String, locationTrackingEnabled: Bool) {
+        category.name = name
+        category.locationTrackingEnabled = locationTrackingEnabled
         hapticFeedback()
     }
     
@@ -190,6 +207,7 @@ struct ManageView: View {
 struct CategoriesSection: View {
     let categories: [Category]
     let onAdd: () -> Void
+    let onEdit: (Category) -> Void
     let onDelete: (Category) -> Void
     
     private let columns = [
@@ -229,7 +247,11 @@ struct CategoriesSection: View {
             
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(categories) { category in
-                    CategoryCard(category: category, onDelete: { onDelete(category) })
+                    CategoryCard(
+                        category: category,
+                        onEdit: { onEdit(category) },
+                        onDelete: { onDelete(category) }
+                    )
                 }
             }
             .padding(.horizontal, 20)
@@ -239,16 +261,36 @@ struct CategoriesSection: View {
 
 struct CategoryCard: View {
     let category: Category
+    let onEdit: () -> Void
     let onDelete: () -> Void
     
     var body: some View {
         HStack {
-            Text(category.name)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
+            // Category name and location indicator
+            HStack(spacing: 8) {
+                Text(category.name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white)
+                
+                // Location enabled checkbox
+                if category.locationTrackingEnabled {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#60A5FA")!)
+                }
+            }
             
             Spacer()
             
+            // Edit button
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+            }
+            .padding(.trailing, 8)
+            
+            // Delete button
             Button(action: onDelete) {
                 Image(systemName: "trash.fill")
                     .font(.system(size: 16))
@@ -392,8 +434,11 @@ struct FloatingActionButton: View {
 // MARK: - Add Category Sheet
 struct AddCategorySheet: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var locationManager = LocationManager()
     @State private var categoryName = ""
-    let onSave: (String) -> Void
+    @State private var locationTrackingEnabled = false
+    @State private var showingPermissionAlert = false
+    let onSave: (String, Bool) -> Void
     
     var body: some View {
         NavigationView {
@@ -409,6 +454,37 @@ struct AddCategorySheet: View {
                         .textFieldStyle(DarkTextFieldStyle())
                         .padding(.horizontal)
                     
+                    // Location tracking toggle
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                            
+                            Text("Enable Location Tracking")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: $locationTrackingEnabled)
+                                .tint(Color(hex: "#667eea")!)
+                                .onChange(of: locationTrackingEnabled) { oldValue, newValue in
+                                    if newValue && locationManager.authorizationStatus == .notDetermined {
+                                        locationManager.requestPermission()
+                                    }
+                                }
+                        }
+                        
+                        Text("When enabled, events in this category will automatically capture your location and nearby business names.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    .padding()
+                    .background(Color(hex: "#252540")!)
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+                    
                     HStack(spacing: 16) {
                         Button("Cancel") {
                             dismiss()
@@ -417,7 +493,95 @@ struct AddCategorySheet: View {
                         
                         Button("Create") {
                             if !categoryName.isEmpty {
-                                onSave(categoryName)
+                                onSave(categoryName, locationTrackingEnabled)
+                                dismiss()
+                            }
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(categoryName.isEmpty)
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                }
+                .padding(.top, 32)
+            }
+            .navigationBarHidden(true)
+        }
+    }
+}
+
+// MARK: - Edit Category Sheet
+struct EditCategorySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let category: Category
+    let onSave: (String, Bool) -> Void
+    
+    @StateObject private var locationManager = LocationManager()
+    @State private var categoryName: String
+    @State private var locationTrackingEnabled: Bool
+    
+    init(category: Category, onSave: @escaping (String, Bool) -> Void) {
+        self.category = category
+        self.onSave = onSave
+        _categoryName = State(initialValue: category.name)
+        _locationTrackingEnabled = State(initialValue: category.locationTrackingEnabled)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color(hex: "#1a1a2e")!.ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    Text("Edit Category")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    TextField("Category name", text: $categoryName)
+                        .textFieldStyle(DarkTextFieldStyle())
+                        .padding(.horizontal)
+                    
+                    // Location tracking toggle
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.gray)
+                            
+                            Text("Enable Location Tracking")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Toggle("", isOn: $locationTrackingEnabled)
+                                .tint(Color(hex: "#667eea")!)
+                                .onChange(of: locationTrackingEnabled) { oldValue, newValue in
+                                    if newValue && locationManager.authorizationStatus == .notDetermined {
+                                        locationManager.requestPermission()
+                                    }
+                                }
+                        }
+                        
+                        Text("When enabled, events in this category will automatically capture your location and nearby business names.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    .padding()
+                    .background(Color(hex: "#252540")!)
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+                    
+                    HStack(spacing: 16) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                        
+                        Button("Save") {
+                            if !categoryName.isEmpty {
+                                onSave(categoryName, locationTrackingEnabled)
                                 dismiss()
                             }
                         }
@@ -1015,6 +1179,12 @@ struct AboutSheet: View {
                             )
                             
                             HowToItem(
+                                icon: "location.fill",
+                                title: "Location Tracking",
+                                description: "Enable location tracking for categories to automatically capture GPS coordinates and nearby business names when tracking events."
+                            )
+                            
+                            HowToItem(
                                 icon: "chart.line.uptrend.xyaxis",
                                 title: "View Trends",
                                 description: "Switch to the Trends tab to see charts and statistics about your tracked events over time."
@@ -1050,7 +1220,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.1")
+                        Text("Version 1.2")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)

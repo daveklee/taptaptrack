@@ -11,10 +11,14 @@ struct TrackView: View {
     @Query(sort: \Category.createdAt) private var categories: [Category]
     @Query(sort: \TrackedEvent.timestamp, order: .reverse) private var allEvents: [TrackedEvent]
     
+    // Location manager
+    @StateObject private var locationManager = LocationManager()
+    
     // Sheet item states - using separate state for each sheet type
     @State private var eventForConfirmation: TrackedEvent?
     @State private var eventForQuickNote: TrackedEvent?
     @State private var eventForEdit: TrackedEvent?
+    @State private var isCapturingLocation = false
     
     private var eventsToday: Int {
         let calendar = Calendar.current
@@ -138,25 +142,177 @@ struct TrackView: View {
     }
     
     private func trackEvent(preset: EventPreset, notes: String? = nil) {
-        let event = TrackedEvent(preset: preset, notes: notes)
-        modelContext.insert(event)
+        let category = preset.category
+        let needsLocation = category?.locationTrackingEnabled ?? false
         
-        // Show confirmation sheet with the new event
-        eventForConfirmation = event
-        
-        // Haptic feedback
-        hapticFeedback()
+        if needsLocation {
+            Task {
+                await trackEventWithLocation(preset: preset, notes: notes)
+            }
+        } else {
+            let event = TrackedEvent(preset: preset, notes: notes)
+            modelContext.insert(event)
+            eventForConfirmation = event
+            hapticFeedback()
+        }
     }
     
     private func trackEventAndEdit(preset: EventPreset) {
-        let event = TrackedEvent(preset: preset)
-        modelContext.insert(event)
+        let category = preset.category
+        let needsLocation = category?.locationTrackingEnabled ?? false
         
-        // Show edit sheet directly with the new event
-        eventForEdit = event
+        if needsLocation {
+            Task {
+                await trackEventWithLocationAndEdit(preset: preset)
+            }
+        } else {
+            let event = TrackedEvent(preset: preset)
+            modelContext.insert(event)
+            eventForEdit = event
+            hapticFeedback()
+        }
+    }
+    
+    private func trackEventWithLocation(preset: EventPreset, notes: String? = nil) async {
+        isCapturingLocation = true
         
-        // Haptic feedback
-        hapticFeedback()
+        // Check permission
+        if locationManager.authorizationStatus == .notDetermined {
+            locationManager.requestPermission()
+            // Wait a bit for permission dialog
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        
+        guard locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways else {
+            // Permission denied, create event without location
+            let event = TrackedEvent(preset: preset, notes: notes)
+            await MainActor.run {
+                modelContext.insert(event)
+                eventForConfirmation = event
+                hapticFeedback()
+                isCapturingLocation = false
+            }
+            return
+        }
+        
+        do {
+            // Get current location
+            let location = try await locationManager.getCurrentLocation()
+            
+            // Search for nearby businesses
+            var locationName: String? = nil
+            var address: String? = nil
+            
+            do {
+                let businesses = try await locationManager.searchNearbyBusinesses(at: location)
+                if let nearestBusiness = businesses.first {
+                    locationName = nearestBusiness.name
+                }
+            } catch {
+                // If business search fails, try reverse geocoding
+                locationName = try? await locationManager.reverseGeocode(location: location)
+            }
+            
+            // Get address
+            address = try? await locationManager.getAddress(from: location)
+            
+            // Create event with location data
+            let event = TrackedEvent(
+                preset: preset,
+                notes: notes,
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                locationName: locationName,
+                address: address
+            )
+            
+            await MainActor.run {
+                modelContext.insert(event)
+                eventForConfirmation = event
+                hapticFeedback()
+                isCapturingLocation = false
+            }
+        } catch {
+            // Location failed, create event without location
+            let event = TrackedEvent(preset: preset, notes: notes)
+            await MainActor.run {
+                modelContext.insert(event)
+                eventForConfirmation = event
+                hapticFeedback()
+                isCapturingLocation = false
+            }
+        }
+    }
+    
+    private func trackEventWithLocationAndEdit(preset: EventPreset) async {
+        isCapturingLocation = true
+        
+        // Check permission
+        if locationManager.authorizationStatus == .notDetermined {
+            locationManager.requestPermission()
+            // Wait a bit for permission dialog
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        
+        guard locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways else {
+            // Permission denied, create event without location
+            let event = TrackedEvent(preset: preset)
+            await MainActor.run {
+                modelContext.insert(event)
+                eventForEdit = event
+                hapticFeedback()
+                isCapturingLocation = false
+            }
+            return
+        }
+        
+        do {
+            // Get current location
+            let location = try await locationManager.getCurrentLocation()
+            
+            // Search for nearby businesses
+            var locationName: String? = nil
+            var address: String? = nil
+            
+            do {
+                let businesses = try await locationManager.searchNearbyBusinesses(at: location)
+                if let nearestBusiness = businesses.first {
+                    locationName = nearestBusiness.name
+                }
+            } catch {
+                // If business search fails, try reverse geocoding
+                locationName = try? await locationManager.reverseGeocode(location: location)
+            }
+            
+            // Get address
+            address = try? await locationManager.getAddress(from: location)
+            
+            // Create event with location data
+            let event = TrackedEvent(
+                preset: preset,
+                notes: nil,
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                locationName: locationName,
+                address: address
+            )
+            
+            await MainActor.run {
+                modelContext.insert(event)
+                eventForEdit = event
+                hapticFeedback()
+                isCapturingLocation = false
+            }
+        } catch {
+            // Location failed, create event without location
+            let event = TrackedEvent(preset: preset)
+            await MainActor.run {
+                modelContext.insert(event)
+                eventForEdit = event
+                hapticFeedback()
+                isCapturingLocation = false
+            }
+        }
     }
     
     private func deleteEvent(_ event: TrackedEvent) {
