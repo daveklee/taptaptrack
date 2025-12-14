@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support & FAQ - Tap Tap Track</title>
+    <meta name="description" content="Get help with Tap Tap Track. Learn how to use the app, understand its features, and find answers to frequently asked questions.">
+    <link rel="icon" type="image/png" href="images/AppIcon_1024x1024.png">
+    <link rel="apple-touch-icon" href="images/AppIcon_1024x1024.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .support-page {
+            padding: 140px 0 80px;
+            min-height: 100vh;
+        }
+
+        .support-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .support-header h1 {
+            margin-bottom: 16px;
+        }
+
+        .support-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .feature-section {
+            margin-bottom: 64px;
+        }
+
+        .feature-section h2 {
+            font-size: 1.75rem;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .feature-item {
+            background: var(--gradient-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+        }
+
+        .feature-item-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-item h3 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+        }
+
+        .feature-item p {
+            color: var(--color-text-muted);
+            line-height: 1.7;
+        }
+
+        .how-to-section {
+            background: var(--gradient-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .how-to-item {
+            display: flex;
+            gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .how-to-item:last-child {
+            border-bottom: none;
+        }
+
+        .how-to-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.5rem;
+        }
+
+        .how-to-content h3 {
+            font-size: 1.125rem;
+            margin-bottom: 6px;
+        }
+
+        .how-to-content p {
+            color: var(--color-text-muted);
+            line-height: 1.7;
+        }
+
+        .tips-section {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .tips-section h2 {
+            color: #FBBF24;
+            margin-bottom: 20px;
+        }
+
+        .tip-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .tip-item:last-child {
+            border-bottom: none;
+        }
+
+        .tip-icon {
+            color: #FBBF24;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .tip-text {
+            color: var(--color-text-muted);
+            line-height: 1.7;
+        }
+
+        .faq-section {
+            margin-bottom: 48px;
+        }
+
+        .faq-item {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .faq-question:hover {
+            background: var(--gradient-card);
+        }
+
+        .faq-question h3 {
+            font-size: 1.125rem;
+            margin: 0;
+            flex: 1;
+        }
+
+        .faq-toggle {
+            font-size: 1.25rem;
+            color: var(--color-primary);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            margin-left: 16px;
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 1000px;
+            padding: 0 24px 24px;
+        }
+
+        .faq-answer p {
+            color: var(--color-text-muted);
+            line-height: 1.8;
+            margin: 0;
+        }
+
+        .faq-answer ul {
+            color: var(--color-text-muted);
+            line-height: 1.8;
+            margin: 12px 0 0 0;
+            padding-left: 24px;
+        }
+
+        .faq-answer li {
+            margin-bottom: 8px;
+        }
+
+        .contact-section {
+            background: var(--gradient-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: 40px;
+            text-align: center;
+            margin-top: 64px;
+        }
+
+        .contact-section h2 {
+            margin-bottom: 16px;
+        }
+
+        .contact-section p {
+            color: var(--color-text-muted);
+            margin-bottom: 24px;
+        }
+
+        .contact-email {
+            display: inline-block;
+            background: var(--gradient-primary);
+            color: var(--color-text);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s ease;
+        }
+
+        .contact-email:hover {
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .how-to-item {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .how-to-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.25rem;
+            }
+
+            .contact-section {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <img src="images/AppIcon_1024x1024.png" alt="Tap Tap Track" class="nav-icon">
+                <span>Tap Tap Track</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="index.html#privacy">Privacy</a>
+                <a href="support.html" class="active">Support</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="index.html#download" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Support Content -->
+    <main class="support-page">
+        <div class="container">
+            <div class="support-header">
+                <span class="section-tag">Help & Support</span>
+                <h1>Support & FAQ</h1>
+                <p class="policy-date">Everything you need to know about Tap Tap Track</p>
+            </div>
+
+            <div class="support-content">
+                <!-- Features Overview -->
+                <section class="feature-section">
+                    <h2>App Features</h2>
+                    <p style="color: var(--color-text-muted); margin-bottom: 32px; line-height: 1.8;">
+                        Tap Tap Track is a fully customizable event tracking app that puts you in complete control. 
+                        Create your own categories, define custom event presets, and track anything with a single tap. 
+                        All your data stays on your device — no accounts, no servers, no tracking.
+                    </p>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <div class="feature-item-icon">⚙️</div>
+                            <h3>Custom Categories</h3>
+                            <p>Create categories that match your life — Work, Personal, Health, Social, Hobbies, or anything else. Add, rename, or remove them anytime.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-item-icon">🎨</div>
+                            <h3>Event Presets</h3>
+                            <p>Create personalized event presets with custom names, icons, colors, and categories. Choose from 200+ icons and 16 color options.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-item-icon">👆</div>
+                            <h3>One-Tap Tracking</h3>
+                            <p>Once configured, log any event with a single tap. No forms, no typing, just tap to track instantly.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-item-icon">📊</div>
+                            <h3>History & Trends</h3>
+                            <p>View all your tracked events organized by date with daily and weekly stats. See trends and charts to spot patterns over time.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-item-icon">✏️</div>
+                            <h3>Edit Events</h3>
+                            <p>Edit any tracked event to change the time, date, or add notes. Long-press an event button to track and edit immediately.</p>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-item-icon">📤</div>
+                            <h3>CSV Export</h3>
+                            <p>Export all your data anytime as a CSV file for backup or analysis. Your data belongs to you, always accessible.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- How to Use -->
+                <section class="how-to-section">
+                    <h2 style="margin-bottom: 24px;">How to Use</h2>
+                    
+                    <div class="how-to-item">
+                        <div class="how-to-icon">👆</div>
+                        <div class="how-to-content">
+                            <h3>Quick Track</h3>
+                            <p>Tap any event button to instantly log it with the current time. Events auto-save immediately, so tracking is instant.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="how-to-item">
+                        <div class="how-to-icon">✋</div>
+                        <div class="how-to-content">
+                            <h3>Track with Details</h3>
+                            <p>Long-press an event button to log it and immediately edit the time, date, or add notes. Perfect for logging past events or adding context.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="how-to-item">
+                        <div class="how-to-icon">📅</div>
+                        <div class="how-to-content">
+                            <h3>View History</h3>
+                            <p>Switch to the History tab to see all your tracked events organized by date. Tap the edit icon to modify any entry.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="how-to-item">
+                        <div class="how-to-icon">⚙️</div>
+                        <div class="how-to-content">
+                            <h3>Customize</h3>
+                            <p>Use the Manage tab to create your own categories and event presets with custom icons and colors. Organize your tracking system exactly how you want.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="how-to-item">
+                        <div class="how-to-icon">📈</div>
+                        <div class="how-to-content">
+                            <h3>View Trends</h3>
+                            <p>Switch to the Trends tab to see charts and statistics about your tracked events over time. Spot patterns and track your progress.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="how-to-item">
+                        <div class="how-to-icon">💾</div>
+                        <div class="how-to-content">
+                            <h3>Export Data</h3>
+                            <p>Export your event history to CSV from the History tab for backup or analysis. Your data is always yours to export.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tips -->
+                <section class="tips-section">
+                    <h2>💡 Tips & Tricks</h2>
+                    
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <p class="tip-text">Events auto-save when you tap, so tracking is instant — no need to manually save.</p>
+                    </div>
+                    
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <p class="tip-text">The confirmation popup auto-dismisses after 5 seconds, keeping your workflow smooth.</p>
+                    </div>
+                    
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <p class="tip-text">Use categories to organize similar events together for better organization.</p>
+                    </div>
+                    
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <p class="tip-text">Pick custom colors for each preset to make them easy to identify at a glance.</p>
+                    </div>
+                    
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <p class="tip-text">Add notes to remember context about specific events — perfect for detailed tracking.</p>
+                    </div>
+                    
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <p class="tip-text">Check the Trends tab regularly to see patterns in your tracking over time.</p>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section class="faq-section">
+                    <h2 style="margin-bottom: 32px;">Frequently Asked Questions</h2>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Is my data private and secure?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes! Tap Tap Track is designed with privacy as the core principle. All your data is stored locally on your device using Apple's SwiftData framework. The app never connects to the internet, so your data physically cannot leave your device. We don't collect any information, track usage, or use any analytics services.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Do I need to create an account?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>No account is required! Download the app and start tracking immediately. There's no sign-up, no email, no phone number needed. Just download and use.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>How do I create custom categories and events?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Go to the Manage tab and tap "Add" next to Categories or Event Presets. For categories, just enter a name. For event presets, you can customize:</p>
+                            <ul>
+                                <li>Name: Choose any name for your event</li>
+                                <li>Icon: Select from 200+ icons across 12 categories</li>
+                                <li>Color: Pick from 16 color options</li>
+                                <li>Category: Assign to any category you've created</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Can I edit or delete events after tracking them?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes! Go to the History tab, find the event you want to edit, and tap the edit icon. You can change the time, date, add or modify notes, or delete the event entirely.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>How do I track an event that happened in the past?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Long-press the event button instead of just tapping it. This will log the event and immediately open the edit screen where you can change the date and time to when it actually occurred.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Can I export my data?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes! Go to the History tab and use the export feature to download all your tracked events as a CSV file. This is perfect for backups or analyzing your data in spreadsheet applications.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>What happens to my data if I uninstall the app?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>If you uninstall the app, all data stored locally on your device will be deleted. However, if you have iCloud Backup enabled in your iOS settings, the data may be included in your device backup. To be safe, export your data to CSV before uninstalling if you want to keep it.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Can I sync my data across multiple devices?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Tap Tap Track stores all data locally on each device. If you have iCloud Backup enabled, your data may be included in your device backups, but there's no automatic syncing between devices. You can export your data from one device and import it manually if needed.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>What iOS version do I need?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Tap Tap Track requires iOS 17.0 or later. This ensures you have access to the latest SwiftData features and the best performance.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>How many events can I track?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>There's no limit! You can track as many events as you want. The app uses efficient local storage, so you're only limited by your device's storage capacity.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Can I delete a category or preset?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes! In the Manage tab, you can delete categories or event presets. When deleting a preset, you'll have the option to delete just the preset (keeping the tracked events) or delete both the preset and all associated events.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>What can I track with this app?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Anything you want! Common uses include:</p>
+                            <ul>
+                                <li>Habits: Exercise, meditation, reading</li>
+                                <li>Health: Medications, meals, sleep times</li>
+                                <li>Work: Meetings, calls, tasks completed</li>
+                                <li>Social: Events, calls, activities</li>
+                                <li>Hobbies: Practice sessions, creative work</li>
+                                <li>And much more — it's completely customizable!</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>Is the app free?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes! Tap Tap Track is free to download and use. There are no in-app purchases, subscriptions, or hidden costs.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            <h3>How do I contact support?</h3>
+                            <span class="faq-toggle">▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>If you have questions or need help, please email us at <a href="mailto:info@timelapsetech.com">info@timelapsetech.com</a>. We're here to help!</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact Section -->
+                <section class="contact-section">
+                    <h2>Still Have Questions?</h2>
+                    <p>Can't find what you're looking for? We're here to help!</p>
+                    <a href="mailto:info@timelapsetech.com" class="contact-email">Contact Support</a>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="images/AppIcon_1024x1024.png" alt="Tap Tap Track" class="footer-icon">
+                    <span class="footer-name">Tap Tap Track</span>
+                </div>
+                <div class="footer-links">
+                    <a href="support.html">Support</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 Time Lapse Technologies LLC. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar background on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('.nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('nav-scrolled');
+            } else {
+                nav.classList.remove('nav-scrolled');
+            }
+        });
+
+        // FAQ Toggle
+        function toggleFaq(element) {
+            const faqItem = element.closest('.faq-item');
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all other FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                if (item !== faqItem) {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // Toggle current item
+            if (isActive) {
+                faqItem.classList.remove('active');
+            } else {
+                faqItem.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
