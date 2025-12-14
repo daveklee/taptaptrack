@@ -113,7 +113,7 @@ struct TrackView: View {
                     deleteEvent(event)
                 }
             )
-            .presentationDetents([.height(540)])
+            .presentationDetents([.height(650)])
             .presentationDragIndicator(.visible)
         }
         .sheet(item: $eventForQuickNote) { event in

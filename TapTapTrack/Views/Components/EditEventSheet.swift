@@ -398,6 +398,8 @@ struct TrackConfirmationSheet: View {
     @State private var showingLocationEditor = false
     @State private var nearbyBusinesses: [MKMapItem] = []
     @State private var isSearchingBusinesses = false
+    @State private var countdown: Int = 5
+    @State private var countdownTimer: Timer?
     
     var hasLocation: Bool {
         event.latitude != nil && event.longitude != nil
@@ -409,25 +411,54 @@ struct TrackConfirmationSheet: View {
             
             ScrollView {
                 VStack(spacing: 24) {
-                    // Success Animation
+                    // Success Animation with Countdown
                     ZStack {
+                        // Countdown circle (outer ring)
                         Circle()
-                            .fill(
+                            .stroke(Color.white.opacity(0.2), lineWidth: 4)
+                            .frame(width: 100, height: 100)
+                        
+                        Circle()
+                            .trim(from: 0, to: CGFloat(countdown) / 5.0)
+                            .stroke(
                                 LinearGradient(
                                     colors: [Color(hex: "#10B981")!, Color(hex: "#059669")!],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
-                                )
+                                ),
+                                style: StrokeStyle(lineWidth: 4, lineCap: .round)
                             )
-                            .frame(width: 80, height: 80)
-                            .scaleEffect(animateCheckmark ? 1.0 : 0.5)
-                            .opacity(animateCheckmark ? 1.0 : 0.0)
+                            .frame(width: 100, height: 100)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.linear(duration: 1.0), value: countdown)
                         
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(.white)
-                            .scaleEffect(animateCheckmark ? 1.0 : 0.3)
-                            .opacity(animateCheckmark ? 1.0 : 0.0)
+                        // Success checkmark circle with countdown number inside
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(hex: "#10B981")!, Color(hex: "#059669")!],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 80, height: 80)
+                            
+                            // Show countdown number while counting, checkmark when done
+                            if countdown > 0 {
+                                Text("\(countdown)")
+                                    .font(.system(size: 32, weight: .bold))
+                                    .foregroundColor(.white)
+                            } else {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 36, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .scaleEffect(animateCheckmark ? 1.0 : 0.3)
+                                    .opacity(animateCheckmark ? 1.0 : 0.0)
+                            }
+                        }
+                        .scaleEffect(countdown > 0 ? 1.0 : (animateCheckmark ? 1.0 : 0.5))
+                        .opacity(countdown > 0 ? 1.0 : (animateCheckmark ? 1.0 : 0.0))
                     }
                     .animation(.spring(response: 0.4, dampingFraction: 0.6), value: animateCheckmark)
                     
@@ -536,6 +567,17 @@ struct TrackConfirmationSheet: View {
             let notificationFeedback = UINotificationFeedbackGenerator()
             notificationFeedback.notificationOccurred(.success)
             
+            // Start countdown timer
+            countdown = 5
+            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+                if countdown > 0 {
+                    countdown -= 1
+                } else {
+                    timer.invalidate()
+                    countdownTimer = nil
+                }
+            }
+            
             // Auto-dismiss after 5 seconds
             let task = DispatchWorkItem {
                 dismiss()
@@ -545,12 +587,16 @@ struct TrackConfirmationSheet: View {
         }
         .onDisappear {
             cancelAutoDismiss()
+            countdownTimer?.invalidate()
+            countdownTimer = nil
         }
     }
     
     private func cancelAutoDismiss() {
         autoDismissTask?.cancel()
         autoDismissTask = nil
+        countdownTimer?.invalidate()
+        countdownTimer = nil
     }
 }
 
