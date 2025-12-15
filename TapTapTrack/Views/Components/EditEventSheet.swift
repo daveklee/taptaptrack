@@ -182,34 +182,39 @@ struct EditEventSheet: View {
                                                 .cornerRadius(12)
                                             }
                                         } else {
-                                            ForEach(Array(nearbyBusinesses.enumerated()), id: \.offset) { index, business in
-                                                BusinessSelectionCard(
-                                                    business: business,
-                                                    isSelected: selectedBusiness?.name == business.name,
-                                                    onSelect: {
-                                                        selectedBusiness = business
-                                                        locationNameText = business.name ?? ""
-                                                        
-                                                        // Update coordinates to match selected business
-                                                        if let coordinate = business.placemark.location?.coordinate {
-                                                            event.latitude = coordinate.latitude
-                                                            event.longitude = coordinate.longitude
-                                                            latitudeText = String(format: "%.6f", coordinate.latitude)
-                                                            longitudeText = String(format: "%.6f", coordinate.longitude)
-                                                            
-                                                            // Update address by reverse geocoding
-                                                            Task {
-                                                                let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-                                                                if let address = try? await locationManager.getAddress(from: location) {
-                                                                    await MainActor.run {
-                                                                        event.address = address
+                                            ScrollView {
+                                                VStack(spacing: 8) {
+                                                    ForEach(Array(nearbyBusinesses.enumerated()), id: \.offset) { index, business in
+                                                        BusinessSelectionCard(
+                                                            business: business,
+                                                            isSelected: isBusinessSelected(business, selectedBusiness: selectedBusiness),
+                                                            onSelect: {
+                                                                selectedBusiness = business
+                                                                locationNameText = business.name ?? ""
+                                                                
+                                                                // Update coordinates to match selected business
+                                                                if let coordinate = business.placemark.location?.coordinate {
+                                                                    event.latitude = coordinate.latitude
+                                                                    event.longitude = coordinate.longitude
+                                                                    latitudeText = String(format: "%.6f", coordinate.latitude)
+                                                                    longitudeText = String(format: "%.6f", coordinate.longitude)
+                                                                    
+                                                                    // Update address by reverse geocoding
+                                                                    Task {
+                                                                        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                                                                        if let address = try? await locationManager.getAddress(from: location) {
+                                                                            await MainActor.run {
+                                                                                event.address = address
+                                                                            }
+                                                                        }
                                                                     }
                                                                 }
                                                             }
-                                                        }
+                                                        )
                                                     }
-                                                )
+                                                }
                                             }
+                                            .frame(maxHeight: 200)
                                         }
                                     }
                                 }
@@ -382,6 +387,18 @@ struct EditEventSheet: View {
             }
         }
     }
+    
+    // Helper function to compare businesses by coordinates (unique identifier)
+    private func isBusinessSelected(_ business: MKMapItem, selectedBusiness: MKMapItem?) -> Bool {
+        guard let selected = selectedBusiness,
+              let businessCoord = business.placemark.location?.coordinate,
+              let selectedCoord = selected.placemark.location?.coordinate else {
+            return false
+        }
+        // Compare by coordinates to ensure uniqueness (same name but different location = different business)
+        return businessCoord.latitude == selectedCoord.latitude && 
+               businessCoord.longitude == selectedCoord.longitude
+    }
 }
 
 // MARK: - Track Confirmation Sheet
@@ -419,7 +436,7 @@ struct TrackConfirmationSheet: View {
                             .frame(width: 100, height: 100)
                         
                         Circle()
-                            .trim(from: 0, to: CGFloat(countdown) / 5.0)
+                            .trim(from: 0, to: max(0, min(1, CGFloat(countdown) / 5.0)))
                             .stroke(
                                 LinearGradient(
                                     colors: [Color(hex: "#10B981")!, Color(hex: "#059669")!],
@@ -567,6 +584,11 @@ struct TrackConfirmationSheet: View {
             let notificationFeedback = UINotificationFeedbackGenerator()
             notificationFeedback.notificationOccurred(.success)
             
+            // Search for nearby businesses when confirmation sheet appears (if location exists)
+            if hasLocation && nearbyBusinesses.isEmpty {
+                searchNearbyBusinesses()
+            }
+            
             // Start countdown timer
             countdown = 5
             countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
@@ -597,6 +619,30 @@ struct TrackConfirmationSheet: View {
         autoDismissTask = nil
         countdownTimer?.invalidate()
         countdownTimer = nil
+    }
+    
+    private func searchNearbyBusinesses() {
+        guard let lat = event.latitude, let lon = event.longitude else { return }
+        
+        let location = CLLocation(latitude: lat, longitude: lon)
+        
+        Task {
+            await MainActor.run {
+                isSearchingBusinesses = true
+            }
+            
+            do {
+                let businesses = try await locationManager.searchNearbyBusinesses(at: location)
+                await MainActor.run {
+                    nearbyBusinesses = businesses
+                    isSearchingBusinesses = false
+                }
+            } catch {
+                await MainActor.run {
+                    isSearchingBusinesses = false
+                }
+            }
+        }
     }
 }
 
@@ -817,9 +863,8 @@ struct LocationEditorSheet: View {
                         if event.latitude != nil && event.longitude != nil {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Nearby Locations")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 12))
                                     .foregroundColor(.gray)
-                                    .padding(.horizontal)
                                 
                                 // Search field
                                 HStack {
@@ -857,7 +902,6 @@ struct LocationEditorSheet: View {
                                 }
                                 .background(Color(hex: "#3a3a5e")!)
                                 .cornerRadius(10)
-                                .padding(.horizontal)
                                 
                                 if isSearching {
                                     HStack {
@@ -875,44 +919,48 @@ struct LocationEditorSheet: View {
                                             Image(systemName: "magnifyingglass")
                                             Text(searchText.isEmpty ? "Search Nearby Businesses" : "No results found")
                                         }
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(.system(size: 13, weight: .semibold))
                                         .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)
                                         .padding()
-                                        .background(Color(hex: "#252540")!)
+                                        .background(Color(hex: "#3a3a5e")!)
                                         .cornerRadius(12)
                                     }
-                                    .padding(.horizontal)
                                 } else {
-                                    ForEach(Array(nearbyBusinesses.enumerated()), id: \.offset) { index, business in
-                                        BusinessSelectionCard(
-                                            business: business,
-                                            isSelected: selectedBusiness?.name == business.name,
-                                            onSelect: {
-                                                selectedBusiness = business
-                                                customLocationName = business.name ?? ""
-                                                
-                                                // Update coordinates to match selected business
-                                                if let coordinate = business.placemark.location?.coordinate {
-                                                    event.latitude = coordinate.latitude
-                                                    event.longitude = coordinate.longitude
-                                                    
-                                                    // Update address by reverse geocoding
-                                                    Task {
-                                                        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-                                                        if let address = try? await locationManager.getAddress(from: location) {
-                                                            await MainActor.run {
-                                                                event.address = address
+                                    ScrollView {
+                                        VStack(spacing: 8) {
+                                            ForEach(Array(nearbyBusinesses.enumerated()), id: \.offset) { index, business in
+                                                BusinessSelectionCard(
+                                                    business: business,
+                                                    isSelected: isBusinessSelected(business, selectedBusiness: selectedBusiness),
+                                                    onSelect: {
+                                                        selectedBusiness = business
+                                                        customLocationName = business.name ?? ""
+                                                        
+                                                        // Update coordinates to match selected business
+                                                        if let coordinate = business.placemark.location?.coordinate {
+                                                            event.latitude = coordinate.latitude
+                                                            event.longitude = coordinate.longitude
+                                                            
+                                                            // Update address by reverse geocoding
+                                                            Task {
+                                                                let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+                                                                if let address = try? await locationManager.getAddress(from: location) {
+                                                                    await MainActor.run {
+                                                                        event.address = address
+                                                                    }
+                                                                }
                                                             }
                                                         }
                                                     }
-                                                }
+                                                )
                                             }
-                                        )
-                                        .padding(.horizontal)
+                                        }
                                     }
+                                    .frame(maxHeight: 200)
                                 }
                             }
+                            .padding(.horizontal)
                         }
                         
                         // Coordinates (read-only display)
@@ -1003,6 +1051,18 @@ struct LocationEditorSheet: View {
                 }
             }
         }
+    }
+    
+    // Helper function to compare businesses by coordinates (unique identifier)
+    private func isBusinessSelected(_ business: MKMapItem, selectedBusiness: MKMapItem?) -> Bool {
+        guard let selected = selectedBusiness,
+              let businessCoord = business.placemark.location?.coordinate,
+              let selectedCoord = selected.placemark.location?.coordinate else {
+            return false
+        }
+        // Compare by coordinates to ensure uniqueness (same name but different location = different business)
+        return businessCoord.latitude == selectedCoord.latitude && 
+               businessCoord.longitude == selectedCoord.longitude
     }
 }
 

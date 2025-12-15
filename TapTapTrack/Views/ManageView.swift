@@ -309,7 +309,7 @@ struct CategoriesSection: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .environment(\.editMode, $editMode)
-                .frame(height: CGFloat(categories.count) * 72 + 20)
+                .frame(height: max(0, CGFloat(categories.count) * 72 + 20))
             }
         }
     }

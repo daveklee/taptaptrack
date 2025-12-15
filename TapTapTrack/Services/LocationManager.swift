@@ -48,22 +48,81 @@ class LocationManager: NSObject, ObservableObject {
     private var locationContinuation: CheckedContinuation<CLLocation, Error>?
     
     func searchNearbyBusinesses(at location: CLLocation, query: String? = nil) async throws -> [MKMapItem] {
-        let request = MKLocalSearch.Request()
-        request.region = MKCoordinateRegion(
-            center: location.coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-        )
-        
+        // If there's a specific query, use MKLocalSearch
         if let query = query, !query.isEmpty {
+            let request = MKLocalSearch.Request()
+            request.region = MKCoordinateRegion(
+                center: location.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            )
             request.naturalLanguageQuery = query
+            
+            let search = MKLocalSearch(request: request)
+            let response = try await search.start()
+            
+            // Filter and sort by distance
+            let validItems = response.mapItems.filter { $0.name != nil && !$0.name!.isEmpty }
+            let sortedItems = validItems.sorted { item1, item2 in
+                guard let location1 = item1.placemark.location,
+                      let location2 = item2.placemark.location else {
+                    return false
+                }
+                let distance1 = location.distance(from: location1)
+                let distance2 = location.distance(from: location2)
+                return distance1 < distance2
+            }
+            return Array(sortedItems.prefix(20))
         } else {
-            // Search for nearby businesses using a general query
-            request.naturalLanguageQuery = "business"
+            // For general nearby search, use MKLocalPointsOfInterestRequest
+            // This gives us actual points of interest sorted by distance
+            let region = MKCoordinateRegion(
+                center: location.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            )
+            let request = MKLocalPointsOfInterestRequest(coordinateRegion: region)
+            
+            // Focus on restaurants, bars, and entertainment venues
+            if #available(iOS 13.4, *) {
+                let categories: [MKPointOfInterestCategory] = [
+                    .restaurant,      // Restaurants
+                    .cafe,            // Cafes
+                    .nightlife,       // Bars, clubs, nightlife
+                    .brewery,         // Breweries
+                    .winery,          // Wineries
+                    .theater,         // Movie theaters and theaters
+                    .amusementPark,   // Arcades, amusement parks
+                    .stadium,         // Sports/entertainment venues
+                    .museum           // Museums (entertainment)
+                ]
+                request.pointOfInterestFilter = MKPointOfInterestFilter(including: categories)
+            }
+            
+            let search = MKLocalSearch(request: request)
+            let response = try await search.start()
+            
+            // Filter out items without names and sort by distance
+            let validItems = response.mapItems.filter { item in
+                guard let name = item.name, !name.isEmpty else { return false }
+                // Filter out generic or unhelpful names
+                let lowerName = name.lowercased()
+                return !lowerName.contains("parking") && 
+                       !lowerName.contains("lot") &&
+                       name.count > 2
+            }
+            
+            let sortedItems = validItems.sorted { item1, item2 in
+                guard let location1 = item1.placemark.location,
+                      let location2 = item2.placemark.location else {
+                    return false
+                }
+                let distance1 = location.distance(from: location1)
+                let distance2 = location.distance(from: location2)
+                return distance1 < distance2
+            }
+            
+            // Return up to 20 closest results
+            return Array(sortedItems.prefix(20))
         }
-        
-        let search = MKLocalSearch(request: request)
-        let response = try await search.start()
-        return response.mapItems
     }
     
     func reverseGeocode(location: CLLocation) async throws -> String? {
