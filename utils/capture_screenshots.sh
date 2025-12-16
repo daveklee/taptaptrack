@@ -9,9 +9,12 @@ IPAD_WIDTH=2064
 IPAD_HEIGHT=2752
 ORIGINAL_WIDTH=1290
 ORIGINAL_HEIGHT=2796
+IPAD_ORIGINAL_WIDTH=2064
+IPAD_ORIGINAL_HEIGHT=2752
 PORT=8000
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HTML_DIR="$BASE_DIR/website/app-store-materials"
+IPAD_HTML_DIR="$BASE_DIR/website/app-store-materials/ipad"
 IPHONE_OUTPUT_DIR="$BASE_DIR/media/screenshots/iphone"
 IPAD_OUTPUT_DIR="$BASE_DIR/media/screenshots/ipad"
 TEMP_DIR="$BASE_DIR/website/temp-screenshots"
@@ -52,10 +55,20 @@ create_responsive_html() {
     local responsive_file=$2
     local target_width=$3
     local target_height=$4
+    local device_type=$5
+    
+    # Determine original dimensions based on device type
+    if [ "$device_type" = "ipad" ]; then
+        local base_width=$IPAD_ORIGINAL_WIDTH
+        local base_height=$IPAD_ORIGINAL_HEIGHT
+    else
+        local base_width=$ORIGINAL_WIDTH
+        local base_height=$ORIGINAL_HEIGHT
+    fi
     
     # Calculate scale factors
-    local scale_x=$(echo "scale=6; $target_width / $ORIGINAL_WIDTH" | bc)
-    local scale_y=$(echo "scale=6; $target_height / $ORIGINAL_HEIGHT" | bc)
+    local scale_x=$(echo "scale=6; $target_width / $base_width" | bc)
+    local scale_y=$(echo "scale=6; $target_height / $base_height" | bc)
     
     # Get the background gradient from the original
     BG_GRADIENT=$(get_background_gradient "$original_file")
@@ -70,16 +83,16 @@ create_responsive_html() {
     
     # Read original file and replace dimensions
     cat "$original_file" | \
-    sed "s/width: ${ORIGINAL_WIDTH}px/width: ${target_width}px/g; \
-         s/height: ${ORIGINAL_HEIGHT}px/height: ${target_height}px/g; \
-         s/width=${ORIGINAL_WIDTH}/width=${target_width}/g; \
-         s/height=${ORIGINAL_HEIGHT}/height=${target_height}/g; \
-         s/${ORIGINAL_WIDTH}px/${target_width}px/g; \
-         s/${ORIGINAL_HEIGHT}px/${target_height}px/g" > "$responsive_file"
+    sed "s/width: ${base_width}px/width: ${target_width}px/g; \
+         s/height: ${base_height}px/height: ${target_height}px/g; \
+         s/width=${base_width}/width=${target_width}/g; \
+         s/height=${base_height}/height=${target_height}/g; \
+         s/${base_width}px/${target_width}px/g; \
+         s/${base_height}px/${target_height}px/g" > "$responsive_file"
     
     # Update viewport meta tag
-    sed -i '' "s/width=${ORIGINAL_WIDTH}, height=${ORIGINAL_HEIGHT}/width=${target_width}, height=${target_height}/g" "$responsive_file" 2>/dev/null || \
-    sed -i "s/width=${ORIGINAL_WIDTH}, height=${ORIGINAL_HEIGHT}/width=${target_width}, height=${target_height}/g" "$responsive_file"
+    sed -i '' "s/width=${base_width}, height=${base_height}/width=${target_width}, height=${target_height}/g" "$responsive_file" 2>/dev/null || \
+    sed -i "s/width=${base_width}, height=${base_height}/width=${target_width}, height=${target_height}/g" "$responsive_file"
     
     # Insert comprehensive CSS overrides before closing </style> tag
     if grep -q "</style>" "$responsive_file"; then
@@ -190,15 +203,42 @@ capture_screenshots() {
     echo "=================================="
     echo "📐 Target size: ${target_width} × ${target_height}px"
     
+    # Determine base dimensions for scale calculation
+    if [ "$device_name" = "ipad" ]; then
+        local base_width=$IPAD_ORIGINAL_WIDTH
+        local base_height=$IPAD_ORIGINAL_HEIGHT
+    else
+        local base_width=$ORIGINAL_WIDTH
+        local base_height=$ORIGINAL_HEIGHT
+    fi
+    
     # Calculate scale factors for display
-    local scale_x=$(echo "scale=6; $target_width / $ORIGINAL_WIDTH" | bc)
-    local scale_y=$(echo "scale=6; $target_height / $ORIGINAL_HEIGHT" | bc)
+    local scale_x=$(echo "scale=6; $target_width / $base_width" | bc)
+    local scale_y=$(echo "scale=6; $target_height / $base_height" | bc)
     echo "📐 Scale factors: X=${scale_x}, Y=${scale_y}"
     echo ""
     
+    # Determine source HTML directory
+    if [ "$device_name" = "ipad" ]; then
+        SOURCE_HTML_DIR="$IPAD_HTML_DIR"
+        # Only capture screenshots that exist (iPad has 2)
+        MAX_SCREENSHOTS=2
+    else
+        SOURCE_HTML_DIR="$HTML_DIR"
+        MAX_SCREENSHOTS=6
+    fi
+    
     # Capture each screenshot
-    for i in {1..6}; do
+    for i in $(seq 1 $MAX_SCREENSHOTS); do
         HTML_FILE="screenshot-${i}.html"
+        SOURCE_FILE="$SOURCE_HTML_DIR/$HTML_FILE"
+        
+        # Skip if source file doesn't exist
+        if [ ! -f "$SOURCE_FILE" ]; then
+            echo "  ⚠️  Skipping $HTML_FILE (not found)"
+            continue
+        fi
+        
         RESPONSIVE_FILE="$TEMP_DIR/${device_name}-${HTML_FILE}"
         OUTPUT_FILE="$output_dir/screenshot-${i}.png"
         URL="http://localhost:$PORT/temp-screenshots/${device_name}-${HTML_FILE}"
@@ -206,7 +246,7 @@ capture_screenshots() {
         echo "  → Capturing $HTML_FILE..."
         
         # Create responsive version
-        create_responsive_html "$HTML_DIR/$HTML_FILE" "$RESPONSIVE_FILE" "$target_width" "$target_height"
+        create_responsive_html "$SOURCE_FILE" "$RESPONSIVE_FILE" "$target_width" "$target_height" "$device_name"
         
         # Wait a moment for file system
         sleep 0.5

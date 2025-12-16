@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=2064, height=2752">
+    <title>iPad Screenshot 1 - One-Tap Tracking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            width: 2064px;
+            height: 2752px;
+            overflow: hidden;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            color: white;
+        }
+        
+        .promo-slide {
+            width: 2064px;
+            height: 2752px;
+            background: linear-gradient(165deg, #667eea 0%, #764ba2 50%, #1a1a3e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 200px 150px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bg-blur-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(300px);
+            opacity: 0.5;
+        }
+        
+        .blur-1 {
+            width: 1200px;
+            height: 1200px;
+            background: #667eea;
+            top: -300px;
+            right: -300px;
+        }
+        
+        .blur-2 {
+            width: 900px;
+            height: 900px;
+            background: #764ba2;
+            bottom: 30%;
+            left: -300px;
+        }
+        
+        .promo-headline {
+            text-align: center;
+            z-index: 2;
+            margin-bottom: 120px;
+        }
+        
+        .promo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 20px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(20px);
+            padding: 30px 60px;
+            border-radius: 100px;
+            font-size: 56px;
+            font-weight: 600;
+            margin-bottom: 60px;
+        }
+        
+        .promo-headline h2 {
+            font-size: 160px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 40px;
+            text-shadow: 0 4px 40px rgba(0,0,0,0.3);
+        }
+        
+        .promo-headline p {
+            font-size: 68px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .ipad-frame {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            width: 100%;
+        }
+        
+        .ipad-device {
+            width: 1200px;
+            background: linear-gradient(145deg, #2a2a3e 0%, #1a1a2e 100%);
+            border-radius: 60px;
+            padding: 30px;
+            box-shadow: 
+                0 120px 240px rgba(0,0,0,0.5),
+                0 0 0 3px rgba(255,255,255,0.1),
+                inset 0 3px 0 rgba(255,255,255,0.1);
+        }
+        
+        .ipad-screen {
+            border-radius: 40px;
+            overflow: hidden;
+        }
+        
+        .ipad-screen img {
+            width: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="promo-slide">
+        <div class="bg-blur-circle blur-1"></div>
+        <div class="bg-blur-circle blur-2"></div>
+        
+        <div class="promo-headline">
+            <div class="promo-badge">
+                <span>⚙️</span>
+                <span>Fully Configurable</span>
+            </div>
+            <h2>Track anything.<br>Your way.</h2>
+            <p>Create your own categories & events.</p>
+        </div>
+        
+        <div class="ipad-frame">
+            <div class="ipad-device">
+                <div class="ipad-screen">
+                    <img src="../../images/screenshot-ipad-track.png" alt="Track screen">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
