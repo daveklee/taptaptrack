@@ -22,68 +22,79 @@ struct TapTapTrackApp: App {
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             
-            // Seed initial data if needed and handle migration
-            Task { @MainActor in
-                let context = container.mainContext
+            // Perform migration synchronously before returning container
+            // This ensures categories are preserved when upgrading from version 1.0
+            let context = container.mainContext
+            
+            // Check if we already have categories
+            // Use do-catch to handle any migration errors gracefully
+            let categoryDescriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.createdAt)])
+            let existingCategories: [Category]?
+            do {
+                existingCategories = try context.fetch(categoryDescriptor)
+            } catch {
+                // If fetch fails, it might indicate a migration issue
+                // Log error but continue - SwiftData should handle migration automatically
+                print("Warning: Failed to fetch categories during migration: \(error)")
+                existingCategories = nil
+            }
+            
+            if let categories = existingCategories, !categories.isEmpty {
+                // Migrate existing categories from version 1.0 to current version
+                // Ensure locationTrackingEnabled and order properties are properly initialized
                 
-                // Check if we already have categories
-                let categoryDescriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.createdAt)])
-                let existingCategories = try? context.fetch(categoryDescriptor)
+                // Check if all categories have order 0, which indicates migration from 1.0 is needed
+                // (Categories from 1.0 won't have the order property, so they'll default to 0)
+                let allHaveDefaultOrder = categories.allSatisfy { $0.order == 0 }
                 
-                // Access existing categories to ensure migration completes properly
-                // The default value (= false) should handle migration automatically
-                if let categories = existingCategories, !categories.isEmpty {
-                    // Just accessing the property ensures it's initialized with default value
-                    var needsOrderUpdate = false
-                    // Check if all categories have order 0 (indicating they need migration)
-                    let allHaveDefaultOrder = categories.allSatisfy { $0.order == 0 }
-                    
-                    if allHaveDefaultOrder {
-                        // Set order based on createdAt (they're already sorted by createdAt)
-                        for (index, category) in categories.enumerated() {
-                            let _ = category.locationTrackingEnabled
-                            category.order = index
-                            needsOrderUpdate = true
-                        }
-                    } else {
-                        // Just ensure locationTrackingEnabled is accessed for migration
-                        for category in categories {
-                            let _ = category.locationTrackingEnabled
-                        }
+                if allHaveDefaultOrder {
+                    // Migrating from version 1.0: set order based on creation date
+                    // Categories are already sorted by createdAt, so we can assign sequential order
+                    for (index, category) in categories.enumerated() {
+                        // Access locationTrackingEnabled to ensure SwiftData migration completes
+                        // This triggers the property to be initialized with default value (false)
+                        let _ = category.locationTrackingEnabled
+                        
+                        // Set order based on creation date (they're already sorted)
+                        category.order = index
                     }
                     
-                    if needsOrderUpdate {
-                        try? context.save()
+                    // Save migration changes
+                    try? context.save()
+                } else {
+                    // Categories already have order set, but ensure locationTrackingEnabled is migrated
+                    for category in categories {
+                        let _ = category.locationTrackingEnabled
                     }
-                }
-                
-                if existingCategories?.isEmpty ?? true {
-                    // Seed categories with explicit order
-                    let work = Category(name: "Work", colorHex: "#6366F1", locationTrackingEnabled: false, order: 0)
-                    let personal = Category(name: "Personal", colorHex: "#8B5CF6", locationTrackingEnabled: false, order: 1)
-                    let health = Category(name: "Health", colorHex: "#EC4899", locationTrackingEnabled: false, order: 2)
-                    let social = Category(name: "Social", colorHex: "#14B8A6", locationTrackingEnabled: false, order: 3)
-                    
-                    context.insert(work)
-                    context.insert(personal)
-                    context.insert(health)
-                    context.insert(social)
-                    
-                    // Seed event presets
-                    let cityPreset = EventPreset(name: "City", iconName: "person.3.fill", category: work)
-                    let exercisePreset = EventPreset(name: "Exercise", iconName: "figure.strengthtraining.traditional", category: health)
-                    let coffeePreset = EventPreset(name: "Coffee Break", iconName: "cup.and.saucer.fill", category: personal)
-                    let eventPreset = EventPreset(name: "Event", iconName: "phone.fill", category: work)
-                    let sleepPreset = EventPreset(name: "Sleep", iconName: "bed.double.fill", category: health)
-                    
-                    context.insert(cityPreset)
-                    context.insert(exercisePreset)
-                    context.insert(coffeePreset)
-                    context.insert(eventPreset)
-                    context.insert(sleepPreset)
-                    
+                    // Save to ensure migration is persisted
                     try? context.save()
                 }
+            } else {
+                // No existing categories - seed initial data
+                let work = Category(name: "Work", colorHex: "#6366F1", locationTrackingEnabled: false, order: 0)
+                let personal = Category(name: "Personal", colorHex: "#8B5CF6", locationTrackingEnabled: false, order: 1)
+                let health = Category(name: "Health", colorHex: "#EC4899", locationTrackingEnabled: false, order: 2)
+                let social = Category(name: "Social", colorHex: "#14B8A6", locationTrackingEnabled: false, order: 3)
+                
+                context.insert(work)
+                context.insert(personal)
+                context.insert(health)
+                context.insert(social)
+                
+                // Seed event presets
+                let cityPreset = EventPreset(name: "City", iconName: "person.3.fill", category: work)
+                let exercisePreset = EventPreset(name: "Exercise", iconName: "figure.strengthtraining.traditional", category: health)
+                let coffeePreset = EventPreset(name: "Coffee Break", iconName: "cup.and.saucer.fill", category: personal)
+                let eventPreset = EventPreset(name: "Event", iconName: "phone.fill", category: work)
+                let sleepPreset = EventPreset(name: "Sleep", iconName: "bed.double.fill", category: health)
+                
+                context.insert(cityPreset)
+                context.insert(exercisePreset)
+                context.insert(coffeePreset)
+                context.insert(eventPreset)
+                context.insert(sleepPreset)
+                
+                try? context.save()
             }
             
             return container
