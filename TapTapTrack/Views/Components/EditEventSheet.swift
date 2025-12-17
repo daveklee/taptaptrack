@@ -419,6 +419,7 @@ struct TrackConfirmationSheet: View {
     @State private var countdown: Int = 5
     @State private var countdownTimer: Timer?
     @State private var currentIsCapturingLocation: Bool
+    @State private var locationMonitoringTask: Task<Void, Never>?
     
     init(event: TrackedEvent, isCapturingLocation: Bool, onAddNote: @escaping () -> Void, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.event = event
@@ -614,9 +615,21 @@ struct TrackConfirmationSheet: View {
             }
             
             // Monitor for location updates - when location is captured, update state and search businesses
-            Task {
-                while currentIsCapturingLocation && !hasLocation {
+            // Store the task so it can be cancelled when the view disappears
+            locationMonitoringTask = Task {
+                // Add a timeout to prevent infinite loops (max 30 seconds)
+                let maxAttempts = 150 // 30 seconds / 0.2 seconds
+                var attempts = 0
+                
+                while currentIsCapturingLocation && !hasLocation && attempts < maxAttempts {
+                    // Check for cancellation
+                    if Task.isCancelled {
+                        break
+                    }
+                    
                     try? await Task.sleep(nanoseconds: 200_000_000) // Check every 0.2 seconds
+                    attempts += 1
+                    
                     // SwiftData will automatically update the view when event.latitude changes
                     // This task just updates our local state and triggers business search
                     if hasLocation {
@@ -628,6 +641,11 @@ struct TrackConfirmationSheet: View {
                         }
                         break
                     }
+                }
+                
+                // If we exit the loop without location, stop monitoring
+                await MainActor.run {
+                    currentIsCapturingLocation = false
                 }
             }
             
@@ -653,6 +671,9 @@ struct TrackConfirmationSheet: View {
             cancelAutoDismiss()
             countdownTimer?.invalidate()
             countdownTimer = nil
+            // Cancel location monitoring task to prevent resource leaks
+            locationMonitoringTask?.cancel()
+            locationMonitoringTask = nil
         }
     }
     
