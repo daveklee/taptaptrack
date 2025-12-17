@@ -19,6 +19,7 @@ struct TrackView: View {
     @State private var eventForQuickNote: TrackedEvent?
     @State private var eventForEdit: TrackedEvent?
     @State private var isCapturingLocation = false
+    @State private var eventCapturingLocation: TrackedEvent?
     
     private var eventsToday: Int {
         let calendar = Calendar.current
@@ -95,6 +96,7 @@ struct TrackView: View {
         .sheet(item: $eventForConfirmation) { event in
             TrackConfirmationSheet(
                 event: event,
+                isCapturingLocation: eventCapturingLocation?.id == event.id && isCapturingLocation,
                 onAddNote: {
                     // Store event reference before confirmation dismisses
                     let eventToEdit = event
@@ -145,15 +147,24 @@ struct TrackView: View {
         let category = preset.category
         let needsLocation = category?.locationTrackingEnabled ?? false
         
+        // Always provide immediate feedback
+        hapticFeedback()
+        
         if needsLocation {
+            // Create event immediately without location
+            let event = TrackedEvent(preset: preset, notes: notes)
+            modelContext.insert(event)
+            eventForConfirmation = event
+            eventCapturingLocation = event
+            
+            // Then update with location data asynchronously
             Task {
-                await trackEventWithLocation(preset: preset, notes: notes)
+                await updateEventWithLocation(event: event, preset: preset)
             }
         } else {
             let event = TrackedEvent(preset: preset, notes: notes)
             modelContext.insert(event)
             eventForConfirmation = event
-            hapticFeedback()
         }
     }
     
@@ -161,20 +172,31 @@ struct TrackView: View {
         let category = preset.category
         let needsLocation = category?.locationTrackingEnabled ?? false
         
+        // Always provide immediate feedback
+        hapticFeedback()
+        
         if needsLocation {
+            // Create event immediately without location
+            let event = TrackedEvent(preset: preset)
+            modelContext.insert(event)
+            eventForEdit = event
+            eventCapturingLocation = event
+            
+            // Then update with location data asynchronously
             Task {
-                await trackEventWithLocationAndEdit(preset: preset)
+                await updateEventWithLocationAndEdit(event: event, preset: preset)
             }
         } else {
             let event = TrackedEvent(preset: preset)
             modelContext.insert(event)
             eventForEdit = event
-            hapticFeedback()
         }
     }
     
-    private func trackEventWithLocation(preset: EventPreset, notes: String? = nil) async {
-        isCapturingLocation = true
+    private func updateEventWithLocation(event: TrackedEvent, preset: EventPreset) async {
+        await MainActor.run {
+            isCapturingLocation = true
+        }
         
         // Check permission
         if locationManager.authorizationStatus == .notDetermined {
@@ -184,13 +206,10 @@ struct TrackView: View {
         }
         
         guard locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways else {
-            // Permission denied, create event without location
-            let event = TrackedEvent(preset: preset, notes: notes)
+            // Permission denied, keep event without location
             await MainActor.run {
-                modelContext.insert(event)
-                eventForConfirmation = event
-                hapticFeedback()
                 isCapturingLocation = false
+                eventCapturingLocation = nil
             }
             return
         }
@@ -216,36 +235,28 @@ struct TrackView: View {
             // Get address
             address = try? await locationManager.getAddress(from: location)
             
-            // Create event with location data
-            let event = TrackedEvent(
-                preset: preset,
-                notes: notes,
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude,
-                locationName: locationName,
-                address: address
-            )
-            
+            // Update existing event with location data
             await MainActor.run {
-                modelContext.insert(event)
-                eventForConfirmation = event
-                hapticFeedback()
+                event.latitude = location.coordinate.latitude
+                event.longitude = location.coordinate.longitude
+                event.locationName = locationName
+                event.address = address
                 isCapturingLocation = false
+                eventCapturingLocation = nil
             }
         } catch {
-            // Location failed, create event without location
-            let event = TrackedEvent(preset: preset, notes: notes)
+            // Location failed, keep event without location
             await MainActor.run {
-                modelContext.insert(event)
-                eventForConfirmation = event
-                hapticFeedback()
                 isCapturingLocation = false
+                eventCapturingLocation = nil
             }
         }
     }
     
-    private func trackEventWithLocationAndEdit(preset: EventPreset) async {
-        isCapturingLocation = true
+    private func updateEventWithLocationAndEdit(event: TrackedEvent, preset: EventPreset) async {
+        await MainActor.run {
+            isCapturingLocation = true
+        }
         
         // Check permission
         if locationManager.authorizationStatus == .notDetermined {
@@ -255,13 +266,10 @@ struct TrackView: View {
         }
         
         guard locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways else {
-            // Permission denied, create event without location
-            let event = TrackedEvent(preset: preset)
+            // Permission denied, keep event without location
             await MainActor.run {
-                modelContext.insert(event)
-                eventForEdit = event
-                hapticFeedback()
                 isCapturingLocation = false
+                eventCapturingLocation = nil
             }
             return
         }
@@ -287,30 +295,20 @@ struct TrackView: View {
             // Get address
             address = try? await locationManager.getAddress(from: location)
             
-            // Create event with location data
-            let event = TrackedEvent(
-                preset: preset,
-                notes: nil,
-                latitude: location.coordinate.latitude,
-                longitude: location.coordinate.longitude,
-                locationName: locationName,
-                address: address
-            )
-            
+            // Update existing event with location data
             await MainActor.run {
-                modelContext.insert(event)
-                eventForEdit = event
-                hapticFeedback()
+                event.latitude = location.coordinate.latitude
+                event.longitude = location.coordinate.longitude
+                event.locationName = locationName
+                event.address = address
                 isCapturingLocation = false
+                eventCapturingLocation = nil
             }
         } catch {
-            // Location failed, create event without location
-            let event = TrackedEvent(preset: preset)
+            // Location failed, keep event without location
             await MainActor.run {
-                modelContext.insert(event)
-                eventForEdit = event
-                hapticFeedback()
                 isCapturingLocation = false
+                eventCapturingLocation = nil
             }
         }
     }
@@ -422,13 +420,16 @@ struct CategorySection: View {
             
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(presets) { preset in
-                    EventPresetCard(preset: preset, category: category)
-                        .onTapGesture {
+                    EventPresetCard(
+                        preset: preset,
+                        category: category,
+                        onTap: {
                             onTap(preset)
-                        }
-                        .onLongPressGesture(minimumDuration: 0.5) {
+                        },
+                        onLongPress: {
                             onLongPress(preset)
                         }
+                    )
                 }
             }
             .padding(.horizontal, 20)
@@ -441,6 +442,8 @@ struct CategorySection: View {
 struct EventPresetCard: View {
     let preset: EventPreset
     let category: Category
+    let onTap: () -> Void
+    let onLongPress: () -> Void
     
     @State private var isPressed = false
     
@@ -487,6 +490,34 @@ struct EventPresetCard: View {
         .frame(height: 110)
         .scaleEffect(isPressed ? 0.95 : 1.0)
         .animation(.spring(response: 0.2), value: isPressed)
+        .onTapGesture {
+            // Immediate visual feedback
+            withAnimation(.spring(response: 0.2)) {
+                isPressed = true
+            }
+            // Call the callback immediately
+            onTap()
+            // Reset visual feedback after animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.spring(response: 0.2)) {
+                    isPressed = false
+                }
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.5) {
+            // Immediate visual feedback for long press
+            withAnimation(.spring(response: 0.2)) {
+                isPressed = true
+            }
+            // Call the callback
+            onLongPress()
+            // Reset visual feedback after animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.spring(response: 0.2)) {
+                    isPressed = false
+                }
+            }
+        }
     }
 }
 

@@ -405,6 +405,7 @@ struct EditEventSheet: View {
 struct TrackConfirmationSheet: View {
     @Environment(\.dismiss) private var dismiss
     let event: TrackedEvent
+    let isCapturingLocation: Bool
     let onAddNote: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -417,9 +418,23 @@ struct TrackConfirmationSheet: View {
     @State private var isSearchingBusinesses = false
     @State private var countdown: Int = 5
     @State private var countdownTimer: Timer?
+    @State private var currentIsCapturingLocation: Bool
+    
+    init(event: TrackedEvent, isCapturingLocation: Bool, onAddNote: @escaping () -> Void, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
+        self.event = event
+        self.isCapturingLocation = isCapturingLocation
+        self.onAddNote = onAddNote
+        self.onEdit = onEdit
+        self.onDelete = onDelete
+        _currentIsCapturingLocation = State(initialValue: isCapturingLocation)
+    }
     
     var hasLocation: Bool {
         event.latitude != nil && event.longitude != nil
+    }
+    
+    var shouldShowLocationLoading: Bool {
+        currentIsCapturingLocation && !hasLocation
     }
     
     var body: some View {
@@ -500,16 +515,22 @@ struct TrackConfirmationSheet: View {
                             .foregroundColor(.gray)
                     }
                     
-                    // Location Info (if available)
-                    if hasLocation {
-                        LocationInfoSection(
-                            event: event,
-                            onEdit: {
-                                cancelAutoDismiss()
-                                showingLocationEditor = true
-                            }
-                        )
-                        .padding(.horizontal)
+                    // Location Info (if available or capturing)
+                    if hasLocation || shouldShowLocationLoading {
+                        if shouldShowLocationLoading {
+                            // Show loading state while capturing location
+                            LocationLoadingSection()
+                                .padding(.horizontal)
+                        } else {
+                            LocationInfoSection(
+                                event: event,
+                                onEdit: {
+                                    cancelAutoDismiss()
+                                    showingLocationEditor = true
+                                }
+                            )
+                            .padding(.horizontal)
+                        }
                     }
                 
                     // Action Buttons
@@ -584,9 +605,30 @@ struct TrackConfirmationSheet: View {
             let notificationFeedback = UINotificationFeedbackGenerator()
             notificationFeedback.notificationOccurred(.success)
             
+            // Update capturing state
+            currentIsCapturingLocation = isCapturingLocation
+            
             // Search for nearby businesses when confirmation sheet appears (if location exists)
             if hasLocation && nearbyBusinesses.isEmpty {
                 searchNearbyBusinesses()
+            }
+            
+            // Monitor for location updates - when location is captured, update state and search businesses
+            Task {
+                while currentIsCapturingLocation && !hasLocation {
+                    try? await Task.sleep(nanoseconds: 200_000_000) // Check every 0.2 seconds
+                    // SwiftData will automatically update the view when event.latitude changes
+                    // This task just updates our local state and triggers business search
+                    if hasLocation {
+                        await MainActor.run {
+                            currentIsCapturingLocation = false
+                            if nearbyBusinesses.isEmpty {
+                                searchNearbyBusinesses()
+                            }
+                        }
+                        break
+                    }
+                }
             }
             
             // Start countdown timer
@@ -811,6 +853,40 @@ struct LocationInfoSection: View {
                         .font(.system(size: 13))
                         .foregroundColor(.gray)
                 }
+            }
+        }
+        .padding()
+        .background(Color(hex: "#252540")!)
+        .cornerRadius(16)
+    }
+}
+
+// MARK: - Location Loading Section
+struct LocationLoadingSection: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+                
+                Text("Location")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "#60A5FA")!))
+                    .scaleEffect(0.8)
+                
+                Text("Finding your location...")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.7))
             }
         }
         .padding()
