@@ -115,7 +115,7 @@ struct EditEventSheet: View {
                                 }
                                 
                                 // Nearby Businesses
-                                if let lat = event.latitude, let lon = event.longitude {
+                                if event.latitude != nil && event.longitude != nil {
                                     VStack(alignment: .leading, spacing: 12) {
                                         Text("Nearby Locations")
                                             .font(.system(size: 12))

@@ -11,10 +11,10 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TrackedEvent.timestamp, order: .reverse) private var allEvents: [TrackedEvent]
     
-    @State private var showingExportSheet = false
-    @State private var exportURL: URL?
+    @State private var exportURL: ExportURL?
     @State private var eventToEdit: TrackedEvent?
     @State private var searchText: String = ""
+    @State private var isExporting: Bool = false
     
     private var filteredEvents: [TrackedEvent] {
         if searchText.isEmpty {
@@ -84,12 +84,21 @@ struct HistoryView: View {
                             Spacer()
                             
                             Button(action: exportToCSV) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "arrow.down.doc.fill")
-                                    Text("Export")
+                                ZStack {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "arrow.down.doc.fill")
+                                        Text(isExporting ? "Exporting..." : "Export")
+                                    }
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .opacity(isExporting ? 0.3 : 1.0)
+                                    
+                                    if isExporting {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(1.2)
+                                    }
                                 }
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
                                 .background(
@@ -100,7 +109,10 @@ struct HistoryView: View {
                                     )
                                 )
                                 .cornerRadius(20)
+                                .animation(.easeInOut(duration: 0.2), value: isExporting)
                             }
+                            .disabled(isExporting)
+                            .animation(.easeInOut(duration: 0.2), value: isExporting)
                         }
                         .padding(.horizontal, 20)
                         
@@ -162,10 +174,8 @@ struct HistoryView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingExportSheet) {
-            if let url = exportURL {
-                ShareSheet(activityItems: [url])
-            }
+        .sheet(item: $exportURL) { exportURL in
+            ShareSheet(activityItems: [exportURL.url])
         }
         .sheet(item: $eventToEdit) { event in
             EditEventSheet(
@@ -200,23 +210,64 @@ struct HistoryView: View {
     }
     
     private func exportToCSV() {
-        let csvString = generateCSV()
+        // Immediate feedback - ensure UI updates first
+        hapticFeedback()
         
-        let tempDirectory = FileManager.default.temporaryDirectory
-        let fileName = "taptaptrack_export_\(Date().ISO8601Format()).csv"
-        let fileURL = tempDirectory.appendingPathComponent(fileName)
+        // Use withAnimation to ensure state change is visible
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isExporting = true
+        }
         
-        do {
-            try csvString.write(to: fileURL, atomically: true, encoding: .utf8)
-            exportURL = fileURL
-            showingExportSheet = true
-        } catch {
-            print("Failed to export CSV: \(error)")
+        // Capture events on main thread before background work
+        let eventsToExport = allEvents
+        
+        // Generate CSV on background thread to avoid blocking UI
+        Task.detached(priority: .userInitiated) {
+            // Small delay to ensure UI state is visible before heavy work
+            try? await Task.sleep(nanoseconds: 150_000_000) // 0.15 seconds to show feedback
+            
+            let csvString = HistoryView.generateCSV(from: eventsToExport)
+            
+            // Use caches directory which is more reliable for sharing
+            let cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+            let fileName = "taptaptrack_export_\(Date().ISO8601Format()).csv"
+            let fileURL = cacheDirectory.appendingPathComponent(fileName)
+            
+            do {
+                // Remove old file if it exists
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    try FileManager.default.removeItem(at: fileURL)
+                }
+                
+                try csvString.write(to: fileURL, atomically: true, encoding: .utf8)
+                
+                // Ensure file is accessible
+                var resourceValues = URLResourceValues()
+                resourceValues.isExcludedFromBackup = true
+                var mutableFileURL = fileURL
+                try? mutableFileURL.setResourceValues(resourceValues)
+                
+                // Update UI on main thread
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isExporting = false
+                    }
+                    // Setting exportURL will automatically present the sheet via .sheet(item:)
+                    self.exportURL = ExportURL(url: fileURL)
+                }
+            } catch {
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isExporting = false
+                    }
+                    print("Failed to export CSV: \(error)")
+                }
+            }
         }
     }
     
-    private func generateCSV() -> String {
-        var csv = "Date,Time,Event,Category,Notes\n"
+    nonisolated private static func generateCSV(from events: [TrackedEvent]) -> String {
+        var csv = "Date,Time,Event,Category,Icon,Color,Notes,Latitude,Longitude,Location Name,Address\n"
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .short
@@ -224,14 +275,20 @@ struct HistoryView: View {
         let timeFormatter = DateFormatter()
         timeFormatter.timeStyle = .short
         
-        for event in allEvents {
+        for event in events {
             let date = dateFormatter.string(from: event.timestamp)
             let time = timeFormatter.string(from: event.timestamp)
             let eventName = event.eventName.replacingOccurrences(of: ",", with: ";")
             let category = event.categoryName.replacingOccurrences(of: ",", with: ";")
+            let iconName = event.iconName.replacingOccurrences(of: ",", with: ";")
+            let colorHex = (event.colorHex ?? "").replacingOccurrences(of: ",", with: ";")
             let notes = (event.notes ?? "").replacingOccurrences(of: ",", with: ";").replacingOccurrences(of: "\n", with: " ")
+            let latitude = event.latitude != nil ? String(event.latitude!) : ""
+            let longitude = event.longitude != nil ? String(event.longitude!) : ""
+            let locationName = (event.locationName ?? "").replacingOccurrences(of: ",", with: ";")
+            let address = (event.address ?? "").replacingOccurrences(of: ",", with: ";").replacingOccurrences(of: "\n", with: " ")
             
-            csv += "\(date),\(time),\(eventName),\(category),\"\(notes)\"\n"
+            csv += "\(date),\(time),\(eventName),\(category),\(iconName),\(colorHex),\"\(notes)\",\(latitude),\(longitude),\"\(locationName)\",\"\(address)\"\n"
         }
         
         return csv
@@ -400,12 +457,25 @@ struct EventHistoryCard: View {
     }
 }
 
+// MARK: - Export URL Wrapper
+struct ExportURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 // MARK: - Share Sheet
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        
+        // Configure for better file sharing
+        if activityItems.first is URL {
+            controller.excludedActivityTypes = []
+        }
+        
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
