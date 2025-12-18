@@ -5,8 +5,8 @@ All notable changes to Tap Tap Track will be documented in this file.
 ## [1.2] - 2025-01-XX
 
 ### Added
-- **Location tracking for events**: Track events with location data and nearby business information
-  - **Category-based location tracking**: Enable location tracking per category when creating or editing categories
+- **Location logging for events**: Log events with location data and nearby business information
+  - **Category-based location logging**: Enable location logging per category when creating or editing categories
   - **Automatic location capture**: When tracking events in location-enabled categories, the app automatically captures:
     - GPS coordinates (latitude and longitude)
     - Nearby business names using Apple's MapKit
@@ -27,7 +27,7 @@ All notable changes to Tap Tap Track will be documented in this file.
 - Enhanced event confirmation screen to display location information when available
 - Improved edit screen with location data editing capabilities
 - Updated history view to prominently display location names for events with location data
-- Category management now includes location tracking toggle
+- Category management now includes location logging toggle
 
 ### Technical
 - Added `locationTrackingEnabled` property to `Category` model

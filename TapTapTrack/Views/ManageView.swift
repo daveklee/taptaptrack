@@ -515,14 +515,14 @@ struct AddCategorySheet: View {
                         .textFieldStyle(DarkTextFieldStyle())
                         .padding(.horizontal)
                     
-                    // Location tracking toggle
+                    // Location logging toggle
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 16))
                                 .foregroundColor(.gray)
                             
-                            Text("Enable Location Tracking")
+                            Text("Enable Location Logging")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.white)
                             
@@ -603,14 +603,14 @@ struct EditCategorySheet: View {
                         .textFieldStyle(DarkTextFieldStyle())
                         .padding(.horizontal)
                     
-                    // Location tracking toggle
+                    // Location logging toggle
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 16))
                                 .foregroundColor(.gray)
                             
-                            Text("Enable Location Tracking")
+                            Text("Enable Location Logging")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.white)
                             
@@ -1241,8 +1241,8 @@ struct AboutSheet: View {
                             
                             HowToItem(
                                 icon: "location.fill",
-                                title: "Location Tracking",
-                                description: "Enable location tracking for categories to automatically capture GPS coordinates and nearby business names when tracking events."
+                                title: "Location Logging",
+                                description: "Enable location logging for categories to automatically capture GPS coordinates and nearby business names when tracking events."
                             )
                             
                             HowToItem(

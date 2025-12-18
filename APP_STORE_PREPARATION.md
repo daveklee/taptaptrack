@@ -90,7 +90,7 @@ Before submitting to App Store:
 
 ### Location Data Collection
 - The app collects location data (GPS coordinates) only when:
-  - User enables location tracking for a category
+  - User enables location logging for a category
   - User tracks an event in that category
 - Location data is:
   - Stored locally on device only
