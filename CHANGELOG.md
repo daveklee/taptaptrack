@@ -2,6 +2,11 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.2.1] - 2025-12-18
+
+### Changed
+- Updated app icon with larger, solid white logo design
+
 ## [1.2] - 2025-01-XX
 
 ### Added

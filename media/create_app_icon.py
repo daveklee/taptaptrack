@@ -9,7 +9,7 @@ import os
 
 # Configuration
 ICON_SIZE = 1024
-LOGO_SIZE = 920  # Size of logo on the icon (increased to fill more of the square)
+LOGO_SIZE = 980  # Size of logo on the icon (larger to make T more prominent)
 OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(OUTPUT_DIR, "taptaptrack_logo.png")
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "AppIcon_1024x1024.png")
@@ -67,10 +67,11 @@ def convert_blue_to_white(logo):
     return logo
 
 
-def convert_to_white_preserve_shape(logo):
+def convert_to_solid_white(logo):
     """
-    Alternative method: detect the logo shape by finding non-white pixels
-    and convert them to white on transparent background.
+    Convert logo to solid white on transparent background.
+    Detects non-white pixels and makes them fully opaque white.
+    Works with any colored logo (blue, purple, etc.).
     """
     # Convert to RGBA
     if logo.mode != 'RGBA':
@@ -84,28 +85,15 @@ def convert_to_white_preserve_shape(logo):
             r, g, b, a = pixels[x, y]
             
             # Check if this pixel is part of the logo (not white background)
-            # Logo appears to be blue, so we check for blue-ish pixels
             is_white_bg = (r > 245 and g > 245 and b > 245)
             
             if is_white_bg:
                 # Background - make transparent
                 pixels[x, y] = (0, 0, 0, 0)
             else:
-                # Logo part - calculate opacity based on how far from white
-                # More saturated/darker = more opaque
-                max_diff = max(255 - r, 255 - g, 255 - b)
-                avg_diff = (255 - r + 255 - g + 255 - b) / 3
-                
-                # Use the blue channel difference for logos that are primarily blue
-                blue_intensity = max(0, b - max(r, g))  # How blue is it
-                
-                # Opacity based on how "not white" the pixel is
-                opacity = int(min(255, avg_diff * 2))
-                
-                if opacity > 10:  # Only keep visible pixels
-                    pixels[x, y] = (255, 255, 255, opacity)
-                else:
-                    pixels[x, y] = (0, 0, 0, 0)
+                # Logo part - make it solid white (fully opaque)
+                # Any pixel that's not white background becomes solid white
+                pixels[x, y] = (255, 255, 255, 255)
     
     return logo
 
@@ -127,9 +115,9 @@ def main():
     logo = Image.open(LOGO_PATH)
     print(f"     Original size: {logo.size}, mode: {logo.mode}")
     
-    # Convert logo: blue parts to white, white background to transparent
-    print("  → Converting logo (blue → white, background → transparent)...")
-    logo_white = convert_to_white_preserve_shape(logo)
+    # Convert logo: colored parts to solid white, white background to transparent
+    print("  → Converting logo (colored → solid white, background → transparent)...")
+    logo_white = convert_to_solid_white(logo)
     
     # Resize logo to fit
     print(f"  → Resizing logo to {LOGO_SIZE}x{LOGO_SIZE}...")
