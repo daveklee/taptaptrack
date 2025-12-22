@@ -2,7 +2,7 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
-## [1.3] - 2025-12-XX
+## [1.3] - 2025-12-22
 
 ### Added
 - **Foursquare (Swarm) Checkin Import**: Import your Foursquare checkin history into Tap Tap Track
@@ -48,7 +48,7 @@ All notable changes to Tap Tap Track will be documented in this file.
   - Optimized search performance with debouncing
   - Better memory management when handling thousands of events
 
-## [1.2.2] - 2025-12-XX
+## [1.2.2] - 2025-12-22
 
 ### Added
 - **CSV Import functionality**: Import events from previously exported CSV files
