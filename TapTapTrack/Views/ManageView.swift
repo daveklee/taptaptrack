@@ -5,6 +5,7 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct ManageView: View {
     @Environment(\.modelContext) private var modelContext
@@ -18,6 +19,9 @@ struct ManageView: View {
     @State private var presetToEdit: EventPreset?
     @State private var presetToDelete: EventPreset?
     @State private var showingDeleteConfirmation = false
+    @State private var isImporting: Bool = false
+    @State private var showingFileImporter: Bool = false
+    @State private var importResult: ImportResult?
     
     var body: some View {
         ZStack {
@@ -60,6 +64,12 @@ struct ManageView: View {
                     
                     // About & Help Section
                     AboutSection(onTap: { showingAbout = true })
+                    
+                    // Import Section
+                    ImportTapTapTrackSection(
+                        isImporting: isImporting,
+                        onImport: { showingFileImporter = true }
+                    )
                     
                     Spacer(minLength: 100)
                 }
@@ -110,6 +120,27 @@ struct ManageView: View {
             AboutSheet()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .fileImporter(
+            isPresented: $showingFileImporter,
+            allowedContentTypes: [.commaSeparatedText, .text],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    importFromCSV(url: url)
+                }
+            case .failure(let error):
+                importResult = ImportResult(success: false, message: "Failed to select file: \(error.localizedDescription)", importedCount: 0)
+            }
+        }
+        .alert(item: $importResult) { result in
+            Alert(
+                title: Text(result.success ? "Import Successful" : "Import Failed"),
+                message: Text(result.message),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .confirmationDialog(
             "Delete \"\(presetToDelete?.name ?? "Preset")\"?",
@@ -217,6 +248,323 @@ struct ManageView: View {
     private func hapticFeedback() {
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
+    }
+    
+    private func importFromCSV(url: URL) {
+        hapticFeedback()
+        
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isImporting = true
+        }
+        
+        Task.detached(priority: .userInitiated) {
+            do {
+                // Start accessing security-scoped resource
+                guard url.startAccessingSecurityScopedResource() else {
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isImporting = false
+                        }
+                        self.importResult = ImportResult(success: false, message: "Unable to access the selected file.", importedCount: 0)
+                    }
+                    return
+                }
+                
+                defer {
+                    url.stopAccessingSecurityScopedResource()
+                }
+                
+                // Read CSV content
+                let csvString = try String(contentsOf: url, encoding: .utf8)
+                
+                // Parse CSV
+                let rows = ManageView.parseCSV(csvString: csvString)
+                
+                guard !rows.isEmpty else {
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isImporting = false
+                        }
+                        self.importResult = ImportResult(success: false, message: "CSV file is empty or invalid.", importedCount: 0)
+                    }
+                    return
+                }
+                
+                // Import events on main thread with model context
+                await MainActor.run {
+                    let result = self.importEvents(from: rows)
+                    
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isImporting = false
+                    }
+                    
+                    if result.imported > 0 {
+                        var message = "Successfully imported \(result.imported) event\(result.imported == 1 ? "" : "s")."
+                        if result.skipped > 0 {
+                            message += " Skipped \(result.skipped) duplicate\(result.skipped == 1 ? "" : "s")."
+                        }
+                        self.importResult = ImportResult(
+                            success: true,
+                            message: message,
+                            importedCount: result.imported
+                        )
+                    } else if result.skipped > 0 {
+                        self.importResult = ImportResult(
+                            success: false,
+                            message: "All \(result.skipped) event\(result.skipped == 1 ? "" : "s") were already imported.",
+                            importedCount: 0
+                        )
+                    } else {
+                        self.importResult = ImportResult(
+                            success: false,
+                            message: "No events were imported. Please check the CSV format.",
+                            importedCount: 0
+                        )
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isImporting = false
+                    }
+                    self.importResult = ImportResult(
+                        success: false,
+                        message: "Failed to read CSV file: \(error.localizedDescription)",
+                        importedCount: 0
+                    )
+                }
+            }
+        }
+    }
+    
+    private func importEvents(from rows: [CSVRow]) -> (imported: Int, skipped: Int) {
+        var importedCount = 0
+        var skippedCount = 0
+        
+        // Get all existing categories and presets
+        let categoryDescriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)])
+        let presetDescriptor = FetchDescriptor<EventPreset>(sortBy: [SortDescriptor(\.name)])
+        let eventDescriptor = FetchDescriptor<TrackedEvent>()
+        
+        let existingCategories = (try? modelContext.fetch(categoryDescriptor)) ?? []
+        let existingPresets = (try? modelContext.fetch(presetDescriptor)) ?? []
+        let existingEvents = (try? modelContext.fetch(eventDescriptor)) ?? []
+        
+        // Create a set of existing events for de-duplication
+        // Use timestamp (rounded to nearest minute) + event name as the key
+        var existingEventKeys: Set<String> = []
+        let calendar = Calendar.current
+        for event in existingEvents {
+            // Round timestamp to nearest minute for comparison
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: event.timestamp)
+            if let roundedDate = calendar.date(from: components) {
+                let timestampKey = String(roundedDate.timeIntervalSince1970)
+                let eventKey = "\(timestampKey):\(event.eventName.lowercased())"
+                existingEventKeys.insert(eventKey)
+            }
+        }
+        
+        // Create a cache for quick lookups
+        var categoryCache: [String: Category] = [:]
+        for category in existingCategories {
+            categoryCache[category.name.lowercased()] = category
+        }
+        
+        var presetCache: [String: EventPreset] = [:]
+        for preset in existingPresets {
+            let key = "\(preset.name.lowercased()):\(preset.category?.name.lowercased() ?? "none")"
+            presetCache[key] = preset
+        }
+        
+        // Date formatters - match the export format
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .short
+        dateFormatter.locale = Locale.current
+        
+        let timeFormatter = DateFormatter()
+        timeFormatter.timeStyle = .short
+        timeFormatter.locale = Locale.current
+        
+        for row in rows {
+            // Parse date and time separately, then combine
+            guard let date = dateFormatter.date(from: row.date) else {
+                continue
+            }
+            
+            // Parse time - handle both 12-hour and 24-hour formats
+            let calendar = Calendar.current
+            
+            var hour = 0
+            var minute = 0
+            
+            // Try parsing with time formatter first
+            if let timeDate = timeFormatter.date(from: row.time) {
+                let timeComponents = calendar.dateComponents([.hour, .minute], from: timeDate)
+                hour = timeComponents.hour ?? 0
+                minute = timeComponents.minute ?? 0
+            } else {
+                // Fallback: manual parsing
+                let timeParts = row.time.components(separatedBy: ":")
+                if timeParts.count >= 2 {
+                    hour = Int(timeParts[0].trimmingCharacters(in: .whitespaces)) ?? 0
+                    let minutePart = timeParts[1].components(separatedBy: " ").first ?? "0"
+                    minute = Int(minutePart.trimmingCharacters(in: .whitespaces)) ?? 0
+                    
+                    // Handle AM/PM
+                    let timeUpper = row.time.uppercased()
+                    if timeUpper.contains("PM") && hour != 12 {
+                        hour += 12
+                    } else if timeUpper.contains("AM") && hour == 12 {
+                        hour = 0
+                    }
+                }
+            }
+            
+            guard let combinedDate = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: date) else {
+                continue
+            }
+            
+            // Check for duplicate event (same timestamp and event name)
+            let eventName = row.event.isEmpty ? "Imported Event" : row.event
+            let dateComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: combinedDate)
+            if let roundedDate = calendar.date(from: dateComponents) {
+                let timestampKey = String(roundedDate.timeIntervalSince1970)
+                let eventKey = "\(timestampKey):\(eventName.lowercased())"
+                
+                if existingEventKeys.contains(eventKey) {
+                    skippedCount += 1
+                    continue
+                }
+                
+                // Add to existing keys to prevent duplicates within the same import
+                existingEventKeys.insert(eventKey)
+            }
+            
+            // Find or create category
+            let categoryName = row.category.isEmpty ? "Uncategorized" : row.category
+            let categoryKey = categoryName.lowercased()
+            let category: Category
+            
+            if let existing = categoryCache[categoryKey] {
+                category = existing
+            } else {
+                // Create new category
+                let maxOrder = existingCategories.map { $0.order }.max() ?? -1
+                category = Category(name: categoryName, colorHex: "#6366F1", locationTrackingEnabled: false, order: maxOrder + 1)
+                modelContext.insert(category)
+                categoryCache[categoryKey] = category
+            }
+            
+            // Find or create preset
+            let presetKey = "\(eventName.lowercased()):\(categoryKey)"
+            let preset: EventPreset
+            
+            if let existing = presetCache[presetKey] {
+                preset = existing
+            } else {
+                // Create new preset
+                let iconName = row.icon.isEmpty ? "star.fill" : row.icon
+                let colorHex = row.color.isEmpty ? "#667eea" : row.color
+                preset = EventPreset(name: eventName, iconName: iconName, colorHex: colorHex, category: category)
+                modelContext.insert(preset)
+                presetCache[presetKey] = preset
+            }
+            
+            // Restore commas in notes and address (export replaces them with semicolons)
+            let notes = row.notes.isEmpty ? nil : row.notes.replacingOccurrences(of: ";", with: ",")
+            let address = row.address.isEmpty ? nil : row.address.replacingOccurrences(of: ";", with: ",")
+            
+            // Create TrackedEvent
+            let event = TrackedEvent(
+                preset: preset,
+                notes: notes,
+                latitude: row.latitude.isEmpty ? nil : Double(row.latitude),
+                longitude: row.longitude.isEmpty ? nil : Double(row.longitude),
+                locationName: row.locationName.isEmpty ? nil : row.locationName,
+                address: address
+            )
+            
+            // Update timestamp from CSV
+            event.timestamp = combinedDate
+            
+            // Update denormalized data to match CSV (in case preset doesn't match exactly)
+            event.eventName = eventName
+            event.categoryName = categoryName
+            event.iconName = row.icon.isEmpty ? "star.fill" : row.icon
+            event.colorHex = row.color.isEmpty ? nil : row.color
+            
+            modelContext.insert(event)
+            importedCount += 1
+        }
+        
+        // Save context
+        try? modelContext.save()
+        
+        return (imported: importedCount, skipped: skippedCount)
+    }
+    
+    nonisolated private static func parseCSV(csvString: String) -> [CSVRow] {
+        var rows: [CSVRow] = []
+        let lines = csvString.components(separatedBy: .newlines)
+        
+        guard lines.count > 1 else {
+            return rows
+        }
+        
+        // Skip header row
+        for i in 1..<lines.count {
+            let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.isEmpty {
+                continue
+            }
+            
+            // Simple CSV parsing (handles quoted fields)
+            let fields = parseCSVLine(line)
+            
+            guard fields.count >= 6 else {
+                continue
+            }
+            
+            let row = CSVRow(
+                date: fields.count > 0 ? fields[0] : "",
+                time: fields.count > 1 ? fields[1] : "",
+                event: fields.count > 2 ? fields[2] : "",
+                category: fields.count > 3 ? fields[3] : "",
+                icon: fields.count > 4 ? fields[4] : "",
+                color: fields.count > 5 ? fields[5] : "",
+                notes: fields.count > 6 ? fields[6] : "",
+                latitude: fields.count > 7 ? fields[7] : "",
+                longitude: fields.count > 8 ? fields[8] : "",
+                locationName: fields.count > 9 ? fields[9] : "",
+                address: fields.count > 10 ? fields[10] : ""
+            )
+            
+            rows.append(row)
+        }
+        
+        return rows
+    }
+    
+    nonisolated private static func parseCSVLine(_ line: String) -> [String] {
+        var fields: [String] = []
+        var currentField = ""
+        var insideQuotes = false
+        
+        for char in line {
+            if char == "\"" {
+                insideQuotes.toggle()
+            } else if char == "," && !insideQuotes {
+                fields.append(currentField.trimmingCharacters(in: .whitespaces))
+                currentField = ""
+            } else {
+                currentField.append(char)
+            }
+        }
+        
+        // Add the last field
+        fields.append(currentField.trimmingCharacters(in: .whitespaces))
+        
+        return fields
     }
 }
 
@@ -1281,7 +1629,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.2")
+                        Text("Version 1.2.2")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)
@@ -1446,6 +1794,99 @@ struct ColorPicker: View {
     private func colorName(for hex: String) -> String {
         colorOptions.first(where: { $0.hex == hex })?.name ?? "Custom"
     }
+}
+
+// MARK: - Import Tap Tap Track Section
+struct ImportTapTapTrackSection: View {
+    let isImporting: Bool
+    let onImport: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Import Data")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+            
+            Button(action: onImport) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "#10b981")!, Color(hex: "#059669")!],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+                        
+                        ZStack {
+                            if isImporting {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.2)
+                            } else {
+                                Image(systemName: "arrow.up.doc.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Import Tap Tap Track Data")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        Text("Import events from a CSV file")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    if !isImporting {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(hex: "#252540")!)
+                )
+                .opacity(isImporting ? 0.6 : 1.0)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(isImporting)
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - CSV Row
+struct CSVRow {
+    let date: String
+    let time: String
+    let event: String
+    let category: String
+    let icon: String
+    let color: String
+    let notes: String
+    let latitude: String
+    let longitude: String
+    let locationName: String
+    let address: String
+}
+
+// MARK: - Import Result
+struct ImportResult: Identifiable {
+    let id = UUID()
+    let success: Bool
+    let message: String
+    let importedCount: Int
 }
 
 #Preview {

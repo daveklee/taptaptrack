@@ -2,6 +2,20 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.2.2] - 2025-12-XX
+
+### Added
+- **CSV Import functionality**: Import events from previously exported CSV files
+  - Import Tap Tap Track data from CSV files exported from other devices
+  - Automatic de-duplication prevents importing events that already exist
+  - Automatically creates categories and presets as needed during import
+  - Import button located in Manage settings page
+  - Clear labeling distinguishes Tap Tap Track imports from future import options
+
+### Changed
+- Moved import functionality from History view to Manage settings page
+- Improved import user experience with progress indicators and detailed success/error messages
+
 ## [1.2.1] - 2025-12-18
 
 ### Changed
