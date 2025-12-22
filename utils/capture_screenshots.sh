@@ -225,7 +225,7 @@ capture_screenshots() {
         MAX_SCREENSHOTS=2
     else
         SOURCE_HTML_DIR="$HTML_DIR"
-        MAX_SCREENSHOTS=6
+        MAX_SCREENSHOTS=7
     fi
     
     # Capture each screenshot
