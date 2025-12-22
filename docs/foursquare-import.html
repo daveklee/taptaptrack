@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Import Foursquare Checkins - Tap Tap Track</title>
+    <meta name="description" content="Step-by-step guide to import your Foursquare checkin history into Tap Tap Track. Learn how to request your data from Swarm and import it into the app.">
+    <link rel="icon" type="image/png" href="images/AppIcon_1024x1024.png">
+    <link rel="apple-touch-icon" href="images/AppIcon_1024x1024.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .import-guide-page {
+            padding: 140px 0 80px;
+            min-height: 100vh;
+        }
+
+        .import-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .import-header .section-tag {
+            display: inline-block;
+            background: var(--gradient-primary);
+            color: var(--color-text);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .import-header h1 {
+            margin-bottom: 16px;
+        }
+
+        .import-header .policy-date {
+            color: var(--color-text-muted);
+            font-size: 1.125rem;
+        }
+
+        .import-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .step-section {
+            background: var(--gradient-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .step-description {
+            color: var(--color-text-muted);
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .step-screenshot {
+            width: 100%;
+            max-width: 400px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            margin: 0 auto;
+            display: block;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .overview-section {
+            background: var(--gradient-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .overview-section h2 {
+            font-size: 1.75rem;
+            margin-bottom: 16px;
+        }
+
+        .overview-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .overview-list li {
+            padding: 12px 0;
+            padding-left: 32px;
+            position: relative;
+            color: var(--color-text-muted);
+            line-height: 1.7;
+        }
+
+        .overview-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .tips-section {
+            background: var(--gradient-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            margin-top: 48px;
+        }
+
+        .tips-section h2 {
+            font-size: 1.75rem;
+            margin-bottom: 24px;
+        }
+
+        .tip-item {
+            padding: 16px;
+            background: rgba(96, 165, 250, 0.1);
+            border-left: 3px solid #60A5FA;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            color: var(--color-text-muted);
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .import-guide-page {
+                padding: 120px 0 60px;
+            }
+
+            .step-section {
+                padding: 24px;
+            }
+
+            .step-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .step-screenshot {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <img src="images/AppIcon_1024x1024.png" alt="Tap Tap Track" class="nav-icon">
+                <span>Tap Tap Track</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="index.html#privacy">Privacy</a>
+                <a href="support.html">Support</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="index.html#download" class="nav-cta">Download</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Import Guide Content -->
+    <main class="import-guide-page">
+        <div class="container">
+            <div class="import-content">
+                <div class="import-header">
+                    <span class="section-tag">Import Guide</span>
+                    <h1>Import Foursquare Checkins</h1>
+                    <p class="policy-date">Step-by-step guide to bring your Swarm checkin history into Tap Tap Track</p>
+                </div>
+
+                <div class="overview-section">
+                    <h2>Overview</h2>
+                    <p>You can import your Foursquare (Swarm) checkin history into Tap Tap Track. The process involves:</p>
+                    <ul class="overview-list">
+                        <li>Requesting your data from the Swarm app</li>
+                        <li>Downloading the ZIP file when you receive the email</li>
+                        <li>Extracting the checkins JSON file</li>
+                        <li>Importing it into Tap Tap Track</li>
+                    </ul>
+                </div>
+
+                <div class="step-section">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <h3 class="step-title">Open Settings in Swarm</h3>
+                    </div>
+                    <p class="step-description">
+                        Open the Swarm app on your iPhone and tap on your profile icon in the bottom right corner. Then tap on the gear icon (⚙️) in the top right to open Settings.
+                    </p>
+                    <img src="images/foursquare-step-1.png" alt="Step 1: Open Settings in Swarm" class="step-screenshot">
+                </div>
+
+                <div class="step-section">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <h3 class="step-title">Navigate to Privacy Rights</h3>
+                    </div>
+                    <p class="step-description">
+                        In the Settings menu, scroll down and tap on "Privacy Rights". This will take you to Foursquare's privacy and data management options.
+                    </p>
+                    <img src="images/foursquare-step-2.png" alt="Step 2: Privacy Rights" class="step-screenshot">
+                </div>
+
+                <div class="step-section">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <h3 class="step-title">Request Your Data Download</h3>
+                    </div>
+                    <p class="step-description">
+                        Tap on "Data Download Request". You'll be asked to confirm your email address. Foursquare will process your request and send you an email when your data is ready (this usually takes a few minutes to a few hours).
+                    </p>
+                    <img src="images/foursquare-step-3.png" alt="Step 3: Request Data Download" class="step-screenshot">
+                </div>
+
+                <div class="step-section">
+                    <div class="step-header">
+                        <div class="step-number">4</div>
+                        <h3 class="step-title">Download and Extract the ZIP File</h3>
+                    </div>
+                    <p class="step-description">
+                        When you receive the email from Foursquare, open it on your iPhone and tap the download link. The ZIP file will download to your Files app. Open the Files app, find the downloaded ZIP file, and tap on it to extract it. This will create a folder full of files.
+                    </p>
+                    <img src="images/foursquare-step-5.png" alt="Step 4: Download and Extract ZIP File" class="step-screenshot">
+                </div>
+
+                <div class="step-section">
+                    <div class="step-header">
+                        <div class="step-number">5</div>
+                        <h3 class="step-title">Open Tap Tap Track and Go to Manage</h3>
+                    </div>
+                    <p class="step-description">
+                        Open the Tap Tap Track app on your iPhone and navigate to the Manage tab. Scroll down to the bottom of the page to find the "Import Data" section with the "Import Foursquare Checkins" option.
+                    </p>
+                    <img src="images/foursquare-step-4.png" alt="Step 5: Open Tap Tap Track and Go to Manage" class="step-screenshot">
+                </div>
+
+                <div class="step-section">
+                    <div class="step-header">
+                        <div class="step-number">6</div>
+                        <h3 class="step-title">Import into Tap Tap Track</h3>
+                    </div>
+                    <p class="step-description">
+                        Tap "Import Foursquare Checkins" and navigate into the extracted folder, then into the "data-export" folder. You'll find files named like "checkins1.json", "checkins2.json", etc. Select one of the checkins JSON files to import. The app will import all checkins from that file. If you have multiple checkins files, repeat this process for each file.
+                    </p>
+                    <img src="images/foursquare-step-6.png" alt="Step 6: Import into Tap Tap Track" class="step-screenshot">
+                </div>
+
+                <div class="tips-section">
+                    <h2>Tips & Notes</h2>
+                    <div class="tip-item">
+                        <strong>Multiple Files:</strong> If your checkin history is large, Foursquare may split it into multiple JSON files (checkins1.json, checkins2.json, etc.). Import each file separately.
+                    </div>
+                    <div class="tip-item">
+                        <strong>Imported Category:</strong> All imported checkins will be placed in an "Imported" category that is automatically created if it doesn't exist.
+                    </div>
+                    <div class="tip-item">
+                        <strong>Location Data:</strong> All location information (venue names, coordinates, addresses) is preserved during import.
+                    </div>
+                    <div class="tip-item">
+                        <strong>Timestamps:</strong> Original checkin timestamps are maintained and converted to your device's local timezone.
+                    </div>
+                    <div class="tip-item">
+                        <strong>Duplicates:</strong> The app will automatically skip any checkins that have already been imported to prevent duplicates.
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 48px;">
+                    <a href="support.html" class="btn btn-primary">Back to Support</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="images/AppIcon_1024x1024.png" alt="Tap Tap Track" class="footer-icon">
+                    <span class="footer-name">Tap Tap Track</span>
+                </div>
+                <div class="footer-links">
+                    <a href="support.html">Support</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 Time Lapse Technologies LLC. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar background on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('.nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('nav-scrolled');
+            } else {
+                nav.classList.remove('nav-scrolled');
+            }
+        });
+    </script>
+</body>
+</html>
+

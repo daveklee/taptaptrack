@@ -2,6 +2,52 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.3] - 2025-12-XX
+
+### Added
+- **Foursquare (Swarm) Checkin Import**: Import your Foursquare checkin history into Tap Tap Track
+  - Request your data from the Swarm app through privacy settings
+  - Import checkins from Foursquare JSON export files
+  - Automatically creates an "Imported" category for imported checkins
+  - Preserves all location data (venue names, coordinates, addresses)
+  - Maintains original timestamps with proper timezone conversion
+  - Automatic de-duplication prevents importing events that already exist
+  - Step-by-step help guide available in-app and on website
+  - Import button located in Manage settings page under "Import Data" section
+- **Enhanced Event History Search**: Powerful search and filtering capabilities for large event datasets
+  - Keyword search across all events (event names, categories, and notes)
+  - Date range filtering with start and end date pickers
+  - Quick date filter buttons (Today, This Week, This Month, This Year)
+  - Combined keyword and date range filtering for precise results
+  - Debounced search for smooth performance while typing
+  - Clear all filters button for easy reset
+- **Tap to View Event Details**: Tap any event in the history view to open full event details
+  - Quick access to event information without using edit button
+  - Opens the same detailed edit view with all event information
+- **Delete Confirmation Dialog**: Safety confirmation when deleting events
+  - "Are you sure?" dialog prevents accidental deletions
+  - Shows event name in confirmation message
+  - Clear cancel and delete options
+
+### Changed
+- Enhanced trends charts to use bar charts with appropriate aggregation periods
+  - 1D: Hourly bars
+  - 1W, 1M: Daily bars
+  - 3M, 6M: Weekly bars
+  - 1Y, All: Monthly bars
+- Improved location display in edit/view screens
+  - Prominently featured location name and address
+  - Embedded map view showing checkin location
+  - "Open in Maps" button for quick navigation
+- Updated import section UI with help button for Foursquare import
+- Improved "Add Note" button icon for better visual clarity
+- **Performance Optimizations for Large Datasets**:
+  - Lazy loading of event cards (only renders visible items)
+  - Cached date formatters for improved efficiency
+  - Lazy evaluation for stats calculations and filtering
+  - Optimized search performance with debouncing
+  - Better memory management when handling thousands of events
+
 ## [1.2.2] - 2025-12-XX
 
 ### Added

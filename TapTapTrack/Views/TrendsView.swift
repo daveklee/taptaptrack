@@ -85,25 +85,46 @@ struct TrendsView: View {
         let (startDate, endDate) = selectedTimeRange.dateRange
         let calendar = Calendar.current
         
-        // Group events by appropriate interval
-        let grouped: [Date: [TrackedEvent]]
+        // Determine bucket size based on time range
+        enum BucketSize {
+            case hour
+            case day
+            case week
+            case month
+        }
+        
+        let bucketSize: BucketSize
         switch selectedTimeRange {
         case .day:
+            bucketSize = .hour
+        case .week, .month:
+            bucketSize = .day
+        case .threeMonths, .sixMonths:
+            bucketSize = .week
+        case .year, .all:
+            bucketSize = .month
+        }
+        
+        // Group events by appropriate interval
+        let grouped: [Date: [TrackedEvent]]
+        switch bucketSize {
+        case .hour:
             grouped = Dictionary(grouping: filteredEvents) { event -> Date in
                 let components = calendar.dateComponents([.year, .month, .day, .hour], from: event.timestamp)
                 return calendar.date(from: components) ?? event.timestamp
             }
-        case .week, .month:
+        case .day:
             grouped = Dictionary(grouping: filteredEvents) { event -> Date in
                 let components = calendar.dateComponents([.year, .month, .day], from: event.timestamp)
                 return calendar.startOfDay(for: calendar.date(from: components) ?? event.timestamp)
             }
-        case .threeMonths, .sixMonths:
+        case .week:
             grouped = Dictionary(grouping: filteredEvents) { event -> Date in
+                // Get the start of the week for this event
                 let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: event.timestamp)
                 return calendar.date(from: components) ?? event.timestamp
             }
-        case .year, .all:
+        case .month:
             grouped = Dictionary(grouping: filteredEvents) { event -> Date in
                 let components = calendar.dateComponents([.year, .month], from: event.timestamp)
                 return calendar.date(from: components) ?? event.timestamp
@@ -113,20 +134,20 @@ struct TrendsView: View {
         // Create data points for all intervals in the range
         var dataPoints: [ChartDataPoint] = []
         var seenKeys = Set<Date>()
-        var currentDate = startDate
+        var currentDate = calendar.startOfDay(for: startDate)
         
         while currentDate <= endDate {
             let key: Date
-            switch selectedTimeRange {
-            case .day:
+            switch bucketSize {
+            case .hour:
                 let components = calendar.dateComponents([.year, .month, .day, .hour], from: currentDate)
                 key = calendar.date(from: components) ?? currentDate
-            case .week, .month:
+            case .day:
                 key = calendar.startOfDay(for: currentDate)
-            case .threeMonths, .sixMonths:
+            case .week:
                 let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: currentDate)
                 key = calendar.date(from: components) ?? currentDate
-            case .year, .all:
+            case .month:
                 let components = calendar.dateComponents([.year, .month], from: currentDate)
                 key = calendar.date(from: components) ?? currentDate
             }
@@ -140,14 +161,14 @@ struct TrendsView: View {
             
             // Move to next interval
             let nextDate: Date?
-            switch selectedTimeRange {
-            case .day:
+            switch bucketSize {
+            case .hour:
                 nextDate = calendar.date(byAdding: .hour, value: 1, to: currentDate)
-            case .week, .month:
+            case .day:
                 nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate)
-            case .threeMonths, .sixMonths:
+            case .week:
                 nextDate = calendar.date(byAdding: .weekOfYear, value: 1, to: currentDate)
-            case .year, .all:
+            case .month:
                 nextDate = calendar.date(byAdding: .month, value: 1, to: currentDate)
             }
             
@@ -538,25 +559,12 @@ struct ChartCardView: View {
             } else {
                 Chart {
                     ForEach(data) { point in
-                        LineMark(
+                        BarMark(
                             x: .value("Date", point.date),
                             y: .value("Count", point.count)
                         )
                         .foregroundStyle(chartColor)
-                        .interpolationMethod(.catmullRom)
-                        
-                        AreaMark(
-                            x: .value("Date", point.date),
-                            y: .value("Count", point.count)
-                        )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [chartColor.opacity(0.3), chartColor.opacity(0.05)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .interpolationMethod(.catmullRom)
+                        .cornerRadius(4)
                     }
                 }
                 .frame(height: 200)
@@ -605,7 +613,7 @@ struct ChartCardView: View {
         case .threeMonths, .sixMonths:
             formatter.dateFormat = "MMM d"
         case .year, .all:
-            formatter.dateFormat = "MMM"
+            formatter.dateFormat = "MMM yyyy"
         }
         return formatter.string(from: date)
     }

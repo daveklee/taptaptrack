@@ -21,6 +21,8 @@ struct ManageView: View {
     @State private var showingDeleteConfirmation = false
     @State private var isImporting: Bool = false
     @State private var showingFileImporter: Bool = false
+    @State private var showingFoursquareImporter: Bool = false
+    @State private var showingFoursquareHelp: Bool = false
     @State private var importResult: ImportResult?
     
     var body: some View {
@@ -66,9 +68,11 @@ struct ManageView: View {
                     AboutSection(onTap: { showingAbout = true })
                     
                     // Import Section
-                    ImportTapTapTrackSection(
+                    ImportSection(
                         isImporting: isImporting,
-                        onImport: { showingFileImporter = true }
+                        onCSVImport: { showingFileImporter = true },
+                        onFoursquareImport: { showingFoursquareImporter = true },
+                        onFoursquareHelp: { showingFoursquareHelp = true }
                     )
                     
                     Spacer(minLength: 100)
@@ -135,12 +139,31 @@ struct ManageView: View {
                 importResult = ImportResult(success: false, message: "Failed to select file: \(error.localizedDescription)", importedCount: 0)
             }
         }
+        .fileImporter(
+            isPresented: $showingFoursquareImporter,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    importFromFoursquare(url: url)
+                }
+            case .failure(let error):
+                importResult = ImportResult(success: false, message: "Failed to select file: \(error.localizedDescription)", importedCount: 0)
+            }
+        }
         .alert(item: $importResult) { result in
             Alert(
                 title: Text(result.success ? "Import Successful" : "Import Failed"),
                 message: Text(result.message),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .sheet(isPresented: $showingFoursquareHelp) {
+            FoursquareImportHelpSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .confirmationDialog(
             "Delete \"\(presetToDelete?.name ?? "Preset")\"?",
@@ -337,6 +360,102 @@ struct ManageView: View {
         }
     }
     
+    private func importFromFoursquare(url: URL) {
+        hapticFeedback()
+        
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isImporting = true
+        }
+        
+        Task.detached(priority: .userInitiated) {
+            do {
+                // Start accessing security-scoped resource
+                guard url.startAccessingSecurityScopedResource() else {
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isImporting = false
+                        }
+                        self.importResult = ImportResult(success: false, message: "Unable to access the selected file.", importedCount: 0)
+                    }
+                    return
+                }
+                
+                defer {
+                    url.stopAccessingSecurityScopedResource()
+                }
+                
+                // Read JSON content
+                let jsonData = try Data(contentsOf: url)
+                let json = try JSONSerialization.jsonObject(with: jsonData, options: [])
+                
+                guard let jsonDict = json as? [String: Any],
+                      let items = jsonDict["items"] as? [[String: Any]] else {
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isImporting = false
+                        }
+                        self.importResult = ImportResult(success: false, message: "Invalid Foursquare JSON format.", importedCount: 0)
+                    }
+                    return
+                }
+                
+                guard !items.isEmpty else {
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isImporting = false
+                        }
+                        self.importResult = ImportResult(success: false, message: "No checkins found in the file.", importedCount: 0)
+                    }
+                    return
+                }
+                
+                // Import events on main thread with model context
+                await MainActor.run {
+                    let result = self.importFoursquareCheckins(from: items)
+                    
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isImporting = false
+                    }
+                    
+                    if result.imported > 0 {
+                        var message = "Successfully imported \(result.imported) checkin\(result.imported == 1 ? "" : "s")."
+                        if result.skipped > 0 {
+                            message += " Skipped \(result.skipped) duplicate\(result.skipped == 1 ? "" : "s")."
+                        }
+                        self.importResult = ImportResult(
+                            success: true,
+                            message: message,
+                            importedCount: result.imported
+                        )
+                    } else if result.skipped > 0 {
+                        self.importResult = ImportResult(
+                            success: false,
+                            message: "All \(result.skipped) checkin\(result.skipped == 1 ? "" : "s") were already imported.",
+                            importedCount: 0
+                        )
+                    } else {
+                        self.importResult = ImportResult(
+                            success: false,
+                            message: "No checkins were imported. Please check the file format.",
+                            importedCount: 0
+                        )
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isImporting = false
+                    }
+                    self.importResult = ImportResult(
+                        success: false,
+                        message: "Failed to read JSON file: \(error.localizedDescription)",
+                        importedCount: 0
+                    )
+                }
+            }
+        }
+    }
+    
     private func importEvents(from rows: [CSVRow]) -> (imported: Int, skipped: Int) {
         var importedCount = 0
         var skippedCount = 0
@@ -492,6 +611,154 @@ struct ManageView: View {
             event.categoryName = categoryName
             event.iconName = row.icon.isEmpty ? "star.fill" : row.icon
             event.colorHex = row.color.isEmpty ? nil : row.color
+            
+            modelContext.insert(event)
+            importedCount += 1
+        }
+        
+        // Save context
+        try? modelContext.save()
+        
+        return (imported: importedCount, skipped: skippedCount)
+    }
+    
+    private func importFoursquareCheckins(from items: [[String: Any]]) -> (imported: Int, skipped: Int) {
+        var importedCount = 0
+        var skippedCount = 0
+        
+        // Get or create "Imported" category
+        let categoryDescriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)])
+        let existingCategories = (try? modelContext.fetch(categoryDescriptor)) ?? []
+        
+        let importedCategory: Category
+        if let existing = existingCategories.first(where: { $0.name.lowercased() == "imported" }) {
+            importedCategory = existing
+        } else {
+            let maxOrder = existingCategories.map { $0.order }.max() ?? -1
+            importedCategory = Category(name: "Imported", colorHex: "#8B5CF6", locationTrackingEnabled: true, order: maxOrder + 1)
+            modelContext.insert(importedCategory)
+        }
+        
+        // Get all existing events for de-duplication
+        let eventDescriptor = FetchDescriptor<TrackedEvent>()
+        let existingEvents = (try? modelContext.fetch(eventDescriptor)) ?? []
+        
+        // Create a set of existing events for de-duplication
+        var existingEventKeys: Set<String> = []
+        let calendar = Calendar.current
+        for event in existingEvents {
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: event.timestamp)
+            if let roundedDate = calendar.date(from: components) {
+                let timestampKey = String(roundedDate.timeIntervalSince1970)
+                let eventKey = "\(timestampKey):\(event.eventName.lowercased())"
+                existingEventKeys.insert(eventKey)
+            }
+        }
+        
+        // Helper function to parse date with timezone offset
+        // The createdAt field is in local time at the timezone specified by timeZoneOffset
+        func parseDate(from string: String, timeZoneOffset: Int?) -> Date? {
+            // Create date formatters (try multiple formats)
+            let dateFormats = ["yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss"]
+            
+            for dateFormat in dateFormats {
+                let formatter = DateFormatter()
+                formatter.dateFormat = dateFormat
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                
+                // If we have a timezone offset, use it to create the correct timezone
+                if let offsetMinutes = timeZoneOffset {
+                    // timeZoneOffset is in minutes (e.g., -300 = -5 hours = EST)
+                    let offsetSeconds = offsetMinutes * 60
+                    if let timeZone = TimeZone(secondsFromGMT: offsetSeconds) {
+                        formatter.timeZone = timeZone
+                    } else {
+                        // Fallback to device timezone if offset is invalid
+                        formatter.timeZone = TimeZone.current
+                    }
+                } else {
+                    // If no offset provided, assume the date is already in device's local timezone
+                    formatter.timeZone = TimeZone.current
+                }
+                
+                if let date = formatter.date(from: string) {
+                    return date
+                }
+            }
+            return nil
+        }
+        
+        // Create a default preset for imported checkins (will be reused)
+        let presetDescriptor = FetchDescriptor<EventPreset>(sortBy: [SortDescriptor(\.name)])
+        let existingPresets = (try? modelContext.fetch(presetDescriptor)) ?? []
+        
+        let defaultPresetName = "Foursquare Checkin"
+        
+        let preset: EventPreset
+        if let existing = existingPresets.first(where: { $0.name == defaultPresetName && $0.category?.name == "Imported" }) {
+            preset = existing
+        } else {
+            preset = EventPreset(name: defaultPresetName, iconName: "location.fill", colorHex: "#8B5CF6", category: importedCategory)
+            modelContext.insert(preset)
+        }
+        
+        for item in items {
+            // Parse timestamp with timezone information
+            guard let createdAtString = item["createdAt"] as? String else {
+                continue
+            }
+            
+            // Get timezone offset (in minutes, e.g., -300 = -5 hours = EST)
+            let timeZoneOffset = item["timeZoneOffset"] as? Int
+            
+            // Parse the date using the timezone offset from the checkin
+            // This ensures the timestamp is correctly interpreted in the timezone
+            // where the checkin occurred, then converted to UTC for storage
+            guard let createdAt = parseDate(from: createdAtString, timeZoneOffset: timeZoneOffset) else {
+                continue
+            }
+            
+            // Get venue information
+            let venue = item["venue"] as? [String: Any]
+            let venueName = venue?["name"] as? String ?? "Unknown Location"
+            
+            // Get location data
+            let latitude = item["lat"] as? Double
+            let longitude = item["lng"] as? Double
+            
+            // Check for duplicate event (same timestamp and event name)
+            let dateComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: createdAt)
+            if let roundedDate = calendar.date(from: dateComponents) {
+                let timestampKey = String(roundedDate.timeIntervalSince1970)
+                let eventKey = "\(timestampKey):\(venueName.lowercased())"
+                
+                if existingEventKeys.contains(eventKey) {
+                    skippedCount += 1
+                    continue
+                }
+                
+                // Add to existing keys to prevent duplicates within the same import
+                existingEventKeys.insert(eventKey)
+            }
+            
+            // Create TrackedEvent
+            let event = TrackedEvent(
+                preset: preset,
+                notes: nil,
+                latitude: latitude,
+                longitude: longitude,
+                locationName: venueName,
+                address: nil
+            )
+            
+            // Update timestamp from Foursquare data
+            event.timestamp = createdAt
+            
+            // Update denormalized data
+            event.eventName = venueName
+            event.categoryName = "Imported"
+            event.iconName = "location.fill"
+            event.colorHex = "#8B5CF6"
             
             modelContext.insert(event)
             importedCount += 1
@@ -1629,7 +1896,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.2.2")
+                        Text("Version 1.3")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)
@@ -1796,10 +2063,12 @@ struct ColorPicker: View {
     }
 }
 
-// MARK: - Import Tap Tap Track Section
-struct ImportTapTapTrackSection: View {
+// MARK: - Import Section
+struct ImportSection: View {
     let isImporting: Bool
-    let onImport: () -> Void
+    let onCSVImport: () -> Void
+    let onFoursquareImport: () -> Void
+    let onFoursquareHelp: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1808,7 +2077,8 @@ struct ImportTapTapTrackSection: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
-            Button(action: onImport) {
+            // CSV Import Button
+            Button(action: onCSVImport) {
                 HStack(spacing: 16) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10)
@@ -1862,6 +2132,82 @@ struct ImportTapTapTrackSection: View {
             .buttonStyle(PlainButtonStyle())
             .disabled(isImporting)
             .padding(.horizontal, 20)
+            
+            // Foursquare Import Button with Help
+            VStack(spacing: 12) {
+                Button(action: onFoursquareImport) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 44, height: 44)
+                            
+                            ZStack {
+                                if isImporting {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .scaleEffect(1.2)
+                                } else {
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Import Foursquare Checkins")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            Text("Import checkins from Foursquare JSON")
+                                .font(.system(size: 13))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Spacer()
+                        
+                        if !isImporting {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(hex: "#252540")!)
+                    )
+                    .opacity(isImporting ? 0.6 : 1.0)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .disabled(isImporting)
+                
+                // Help Button
+                Button(action: onFoursquareHelp) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 14))
+                        Text("How to get your Foursquare data")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(hex: "#252540")!)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal, 20)
         }
     }
 }
@@ -1887,6 +2233,175 @@ struct ImportResult: Identifiable {
     let success: Bool
     let message: String
     let importedCount: Int
+}
+
+// MARK: - Foursquare Import Help Sheet
+struct FoursquareImportHelpSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color(hex: "#1a1a2e")!.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color(hex: "#667eea")!, Color(hex: "#764ba2")!],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 80, height: 80)
+                                
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text("Import Foursquare Checkins")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text("Bring your checkin history into Tap Tap Track")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, 24)
+                        
+                        // Overview Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Overview")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                HelpStep(
+                                    number: "1",
+                                    title: "Request Your Data",
+                                    description: "Open the Swarm app and request a download of your checkin data through the privacy settings."
+                                )
+                                
+                                HelpStep(
+                                    number: "2",
+                                    title: "Download the ZIP File",
+                                    description: "Once you receive the email from Foursquare, download the ZIP file to your iPhone."
+                                )
+                                
+                                HelpStep(
+                                    number: "3",
+                                    title: "Extract and Import",
+                                    description: "Open the ZIP file, navigate to the checkins JSON file, and import it into Tap Tap Track."
+                                )
+                            }
+                        }
+                        .padding(20)
+                        .background(Color(hex: "#252540")!)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                        
+                        // Detailed Guide Button
+                        Button {
+                            if let url = URL(string: "https://taptaptrack.com/foursquare-import.html") {
+                                openURL(url)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "safari.fill")
+                                    .font(.system(size: 16))
+                                Text("View Step-by-Step Guide")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.system(size: 14))
+                            }
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(hex: "#60A5FA")!, Color(hex: "#3B82F6")!],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Tips Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Tips")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                TipItem(text: "The import process creates an 'Imported' category for your checkins")
+                                TipItem(text: "All location data (venue names, coordinates) will be preserved")
+                                TipItem(text: "Original timestamps are maintained, converted to your local timezone")
+                                TipItem(text: "You can import multiple JSON files if your data is split across files")
+                            }
+                        }
+                        .padding(20)
+                        .background(Color(hex: "#252540")!)
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                        
+                        Spacer(minLength: 40)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Help Step
+struct HelpStep: View {
+    let number: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "#667eea")!)
+                    .frame(width: 32, height: 32)
+                
+                Text(number)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Text(description)
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer()
+        }
+    }
 }
 
 #Preview {

@@ -18,6 +18,9 @@ This is a simple iOS app for tracking life events with just one tap. Use it, mod
 - **Custom colors (v1.2)**: Pick from 16 curated colors for each event preset. Colors make your events instantly recognizable throughout the app.
 - **Charts & trends (v1.2)**: Visualize your tracking patterns with beautiful charts and trend analysis. See daily and weekly statistics, spot patterns over time.
 - **Optional location logging (v1.2)**: Enable location logging per category (disabled by default) to automatically capture GPS coordinates and nearby business names. If enabled, only anonymous coordinates are sent to Apple's servers to fetch business names. Your tracked events and personal data remain private and stored locally.
+- **Foursquare import (v1.3)**: Import your Foursquare (Swarm) checkin history with all location data preserved
+- **Enhanced search (v1.3)**: Powerful search and date range filtering for large event datasets
+- **Performance optimized (v1.3)**: Handles thousands of events smoothly with lazy loading and optimized filtering
 - View your history and export to CSV
 
 ## Installation

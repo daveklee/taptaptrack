@@ -99,12 +99,84 @@ struct EditEventSheet: View {
                         
                         // Location Section (if location data exists) - moved to top
                         if hasLocation {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Location")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.gray)
+                            VStack(alignment: .leading, spacing: 16) {
+                                // Location Name - Prominently displayed
+                                if let locationName = event.locationName, !locationName.isEmpty {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "location.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(Color(hex: "#60A5FA")!)
+                                        
+                                        Text(locationName)
+                                            .font(.system(size: 20, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                    .padding(.bottom, 8)
+                                }
                                 
-                                // Location Name
+                                // Embedded Map View
+                                if let latitude = event.latitude, let longitude = event.longitude {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // Map
+                                        LocationMapView(
+                                            latitude: latitude,
+                                            longitude: longitude,
+                                            locationName: event.locationName ?? "Location"
+                                        )
+                                        .frame(height: 200)
+                                        .cornerRadius(16)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(Color(hex: "#3a3a5e")!, lineWidth: 1)
+                                        )
+                                        
+                                        // Address - Featured below map
+                                        if let address = event.address, !address.isEmpty {
+                                            HStack(spacing: 8) {
+                                                Image(systemName: "mappin.circle.fill")
+                                                    .font(.system(size: 16))
+                                                    .foregroundColor(Color(hex: "#60A5FA")!)
+                                                
+                                                Text(address)
+                                                    .font(.system(size: 16, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .multilineTextAlignment(.leading)
+                                                
+                                                Spacer()
+                                            }
+                                            .padding()
+                                            .background(Color(hex: "#252540")!)
+                                            .cornerRadius(12)
+                                        }
+                                        
+                                        // Open in Maps Button
+                                        Button {
+                                            openInMaps(latitude: latitude, longitude: longitude, name: event.locationName)
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "map.fill")
+                                                    .font(.system(size: 16))
+                                                Text("Open in Maps")
+                                                    .font(.system(size: 15, weight: .semibold))
+                                                Spacer()
+                                                Image(systemName: "arrow.up.right.square")
+                                                    .font(.system(size: 14))
+                                            }
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .background(
+                                                LinearGradient(
+                                                    colors: [Color(hex: "#60A5FA")!, Color(hex: "#3B82F6")!],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                            .cornerRadius(12)
+                                        }
+                                    }
+                                }
+                                
+                                // Location Name Editor
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Location Name")
                                         .font(.system(size: 12))
@@ -363,6 +435,17 @@ struct EditEventSheet: View {
         }
     }
     
+    // Open location in iOS Maps app
+    private func openInMaps(latitude: Double, longitude: Double, name: String?) {
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = name ?? "Location"
+        mapItem.openInMaps(launchOptions: [
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+        ])
+    }
+    
     private func searchNearbyBusinesses() {
         guard let lat = event.latitude, let lon = event.longitude else { return }
         
@@ -523,7 +606,7 @@ struct TrackConfirmationSheet: View {
                             LocationLoadingSection()
                                 .padding(.horizontal)
                         } else {
-                            LocationInfoSection(
+                            LocationInfoSectionSimple(
                                 event: event,
                                 onEdit: {
                                     cancelAutoDismiss()
@@ -542,7 +625,7 @@ struct TrackConfirmationSheet: View {
                             dismiss()
                         } label: {
                             HStack {
-                                Image(systemName: "note.text")
+                                Image(systemName: "square.and.pencil")
                                 Text("Add Note")
                             }
                         }
@@ -829,8 +912,8 @@ struct DestructiveOutlineButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Location Info Section
-struct LocationInfoSection: View {
+// MARK: - Location Info Section (Simple - for confirmation screen)
+struct LocationInfoSectionSimple: View {
     let event: TrackedEvent
     let onEdit: () -> Void
     
@@ -838,12 +921,12 @@ struct LocationInfoSection: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "location.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 18))
                     .foregroundColor(Color(hex: "#60A5FA")!)
                 
                 Text("Location")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.gray)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
@@ -854,24 +937,26 @@ struct LocationInfoSection: View {
                 }
             }
             
+            // Location Name - Prominently displayed
             if let locationName = event.locationName, !locationName.isEmpty {
                 Text(locationName)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
             } else {
                 Text("Custom Location")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundColor(.gray)
             }
             
+            // Address - Prominently displayed
             if let address = event.address, !address.isEmpty {
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Image(systemName: "mappin.circle.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundColor(.gray)
                     
                     Text(address)
-                        .font(.system(size: 13))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.gray)
                 }
             }
@@ -879,6 +964,112 @@ struct LocationInfoSection: View {
         .padding()
         .background(Color(hex: "#252540")!)
         .cornerRadius(16)
+    }
+}
+
+// MARK: - Location Info Section (Full - for edit screen with map)
+struct LocationInfoSection: View {
+    let event: TrackedEvent
+    let onEdit: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(Color(hex: "#60A5FA")!)
+                
+                Text("Location")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Button(action: onEdit) {
+                    Text("Edit")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "#60A5FA")!)
+                }
+            }
+            
+            // Location Name - Prominently displayed
+            if let locationName = event.locationName, !locationName.isEmpty {
+                Text(locationName)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+            } else {
+                Text("Custom Location")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+            
+            // Address - Prominently displayed
+            if let address = event.address, !address.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                    
+                    Text(address)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            // Embedded Map View (if coordinates available)
+            if let latitude = event.latitude, let longitude = event.longitude {
+                LocationMapView(
+                    latitude: latitude,
+                    longitude: longitude,
+                    locationName: event.locationName ?? "Location"
+                )
+                .frame(height: 180)
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(hex: "#3a3a5e")!, lineWidth: 1)
+                )
+                
+                // Open in Maps Button
+                Button {
+                    openInMaps(latitude: latitude, longitude: longitude, name: event.locationName)
+                } label: {
+                    HStack {
+                        Image(systemName: "map.fill")
+                            .font(.system(size: 16))
+                        Text("Open in Maps")
+                            .font(.system(size: 15, weight: .semibold))
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 14))
+                    }
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(
+                        LinearGradient(
+                            colors: [Color(hex: "#60A5FA")!, Color(hex: "#3B82F6")!],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
+                }
+            }
+        }
+        .padding()
+        .background(Color(hex: "#252540")!)
+        .cornerRadius(16)
+    }
+    
+    // Open location in iOS Maps app
+    private func openInMaps(latitude: Double, longitude: Double, name: String?) {
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = name ?? "Location"
+        mapItem.openInMaps(launchOptions: [
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+        ])
     }
 }
 
@@ -1208,6 +1399,68 @@ struct BusinessSelectionCard: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// MARK: - Location Map View
+struct LocationMapView: UIViewRepresentable {
+    let latitude: Double
+    let longitude: Double
+    let locationName: String
+    
+    func makeUIView(context: Context) -> MKMapView {
+        let mapView = MKMapView()
+        mapView.delegate = context.coordinator
+        mapView.mapType = .standard
+        mapView.showsUserLocation = false
+        mapView.isUserInteractionEnabled = false
+        
+        // Create annotation for the location
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = coordinate
+        annotation.title = locationName
+        mapView.addAnnotation(annotation)
+        
+        // Set region to show the location
+        let region = MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        )
+        mapView.setRegion(region, animated: false)
+        
+        return mapView
+    }
+    
+    func updateUIView(_ mapView: MKMapView, context: Context) {
+        // Update if needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, MKMapViewDelegate {
+        func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard annotation is MKPointAnnotation else { return nil }
+            
+            let identifier = "LocationPin"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
+            
+            if annotationView == nil {
+                annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                annotationView?.canShowCallout = true
+            } else {
+                annotationView?.annotation = annotation
+            }
+            
+            if let markerView = annotationView as? MKMarkerAnnotationView {
+                markerView.markerTintColor = UIColor.systemBlue
+                markerView.glyphImage = UIImage(systemName: "mappin.circle.fill")
+            }
+            
+            return annotationView
+        }
     }
 }
 
