@@ -656,31 +656,42 @@ struct ManageView: View {
         }
         
         // Helper function to parse date with timezone offset
-        // The createdAt field is in local time at the timezone specified by timeZoneOffset
+        // The createdAt field represents the local time when the check-in occurred
+        // The timeZoneOffset tells us what timezone that local time is in (in minutes from UTC)
+        // We parse the string as local time in that timezone, which creates a Date object
+        // (stored as UTC internally). When displayed, Swift automatically converts it to
+        // the device's current timezone, so the time shown will match the original local time.
         func parseDate(from string: String, timeZoneOffset: Int?) -> Date? {
             // Create date formatters (try multiple formats)
             let dateFormats = ["yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss"]
             
+            // Determine the timezone to use for parsing
+            let parseTimeZone: TimeZone
+            if let offsetMinutes = timeZoneOffset {
+                // timeZoneOffset is in minutes from UTC (e.g., -300 = UTC-5 = EST)
+                // Create a fixed offset timezone from GMT
+                let offsetSeconds = offsetMinutes * 60
+                parseTimeZone = TimeZone(secondsFromGMT: offsetSeconds)
+            } else {
+                // If no offset provided, assume the date is already in device's local timezone
+                parseTimeZone = TimeZone.current
+            }
+            
+            // Try parsing with each format
             for dateFormat in dateFormats {
                 let formatter = DateFormatter()
                 formatter.dateFormat = dateFormat
                 formatter.locale = Locale(identifier: "en_US_POSIX")
+                // CRITICAL: Set the timezone so DateFormatter interprets the string
+                // as being in that timezone. This ensures correct conversion to UTC.
+                formatter.timeZone = parseTimeZone
                 
-                // If we have a timezone offset, use it to create the correct timezone
-                if let offsetMinutes = timeZoneOffset {
-                    // timeZoneOffset is in minutes (e.g., -300 = -5 hours = EST)
-                    let offsetSeconds = offsetMinutes * 60
-                    if let timeZone = TimeZone(secondsFromGMT: offsetSeconds) {
-                        formatter.timeZone = timeZone
-                    } else {
-                        // Fallback to device timezone if offset is invalid
-                        formatter.timeZone = TimeZone.current
-                    }
-                } else {
-                    // If no offset provided, assume the date is already in device's local timezone
-                    formatter.timeZone = TimeZone.current
-                }
-                
+                // Parse the date string
+                // DateFormatter will interpret the string as local time in parseTimeZone,
+                // then create a Date object (which is UTC internally)
+                // When this Date is later displayed using DateFormatter (without explicit timezone),
+                // it will be converted to the device's current timezone, preserving the
+                // original local time that was stored.
                 if let date = formatter.date(from: string) {
                     return date
                 }
