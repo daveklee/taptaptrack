@@ -15,18 +15,30 @@ final class EventPreset {
     var colorHex: String?
     var createdAt: Date
     
+    // Number input configuration
+    var numberEnabled: Bool = false
+    var numberMin: Double?
+    var numberMax: Double?
+    var numberAllowDecimals: Bool = false
+    var numberRequired: Bool = false
+    
     var category: Category?
     
     @Relationship(deleteRule: .cascade, inverse: \TrackedEvent.preset)
     var trackedEvents: [TrackedEvent]?
     
-    init(name: String, iconName: String = "star.fill", colorHex: String = "#667eea", category: Category? = nil) {
+    init(name: String, iconName: String = "star.fill", colorHex: String = "#667eea", category: Category? = nil, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false) {
         self.id = UUID()
         self.name = name
         self.iconName = iconName
         self.colorHex = colorHex
         self.createdAt = Date()
         self.category = category
+        self.numberEnabled = numberEnabled
+        self.numberMin = numberMin
+        self.numberMax = numberMax
+        self.numberAllowDecimals = numberAllowDecimals
+        self.numberRequired = numberRequired
     }
     
     var color: Color {

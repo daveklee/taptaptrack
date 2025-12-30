@@ -21,6 +21,7 @@ This is a simple iOS app for tracking life events with just one tap. Use it, mod
 - **Foursquare import (v1.3)**: Import your Foursquare (Swarm) checkin history with all location data preserved
 - **Enhanced search (v1.3)**: Powerful search and date range filtering for large event datasets
 - **Performance optimized (v1.3)**: Handles thousands of events smoothly with lazy loading and optimized filtering
+- **Number input (v1.4)**: Add numeric values to events with optional slider and direct input. Configure min/max ranges or allow any number. Support for whole numbers or decimals.
 - View your history and export to CSV
 
 ## Installation

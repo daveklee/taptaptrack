@@ -107,15 +107,15 @@ struct ManageView: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingAddPreset) {
-            AddPresetSheet(categories: categories) { name, iconName, colorHex, category in
-                addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category)
+            AddPresetSheet(categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired in
+                addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
         .sheet(item: $presetToEdit) { preset in
-            EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category in
-                updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category)
+            EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired in
+                updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -216,17 +216,22 @@ struct ManageView: View {
         hapticFeedback()
     }
     
-    private func addPreset(name: String, iconName: String, colorHex: String, category: Category?) {
-        let preset = EventPreset(name: name, iconName: iconName, colorHex: colorHex, category: category)
+    private func addPreset(name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false) {
+        let preset = EventPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired)
         modelContext.insert(preset)
         hapticFeedback()
     }
     
-    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, colorHex: String, category: Category?) {
+    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false) {
         preset.name = name
         preset.iconName = iconName
         preset.colorHex = colorHex
         preset.category = category
+        preset.numberEnabled = numberEnabled
+        preset.numberMin = numberMin
+        preset.numberMax = numberMax
+        preset.numberAllowDecimals = numberAllowDecimals
+        preset.numberRequired = numberRequired
         hapticFeedback()
     }
     
@@ -600,7 +605,8 @@ struct ManageView: View {
                 latitude: row.latitude.isEmpty ? nil : Double(row.latitude),
                 longitude: row.longitude.isEmpty ? nil : Double(row.longitude),
                 locationName: row.locationName.isEmpty ? nil : row.locationName,
-                address: address
+                address: address,
+                numberValue: row.numberValue.isEmpty ? nil : Double(row.numberValue)
             )
             
             // Update timestamp from CSV
@@ -671,7 +677,8 @@ struct ManageView: View {
                 // timeZoneOffset is in minutes from UTC (e.g., -300 = UTC-5 = EST)
                 // Create a fixed offset timezone from GMT
                 let offsetSeconds = offsetMinutes * 60
-                parseTimeZone = TimeZone(secondsFromGMT: offsetSeconds)
+                // TimeZone(secondsFromGMT:) returns an optional, so unwrap with fallback
+                parseTimeZone = TimeZone(secondsFromGMT: offsetSeconds) ?? TimeZone.current
             } else {
                 // If no offset provided, assume the date is already in device's local timezone
                 parseTimeZone = TimeZone.current
@@ -799,6 +806,7 @@ struct ManageView: View {
             // Simple CSV parsing (handles quoted fields)
             let fields = parseCSVLine(line)
             
+            // Support both old format (11 fields) and new format (12 fields with numberValue)
             guard fields.count >= 6 else {
                 continue
             }
@@ -814,7 +822,8 @@ struct ManageView: View {
                 latitude: fields.count > 7 ? fields[7] : "",
                 longitude: fields.count > 8 ? fields[8] : "",
                 locationName: fields.count > 9 ? fields[9] : "",
-                address: fields.count > 10 ? fields[10] : ""
+                address: fields.count > 10 ? fields[10] : "",
+                numberValue: fields.count > 11 ? fields[11] : ""
             )
             
             rows.append(row)
@@ -1290,12 +1299,17 @@ struct EditCategorySheet: View {
 struct AddPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
     let categories: [Category]
-    let onSave: (String, String, String, Category?) -> Void
+    let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool) -> Void
     
     @State private var presetName = ""
     @State private var selectedIcon = "star.fill"
     @State private var selectedColorHex = "#667eea"
     @State private var selectedCategory: Category?
+    @State private var numberEnabled = false
+    @State private var numberMin: Double? = nil
+    @State private var numberMax: Double? = nil
+    @State private var numberAllowDecimals = false
+    @State private var numberRequired = false
     
     var body: some View {
         NavigationView {
@@ -1349,6 +1363,15 @@ struct AddPresetSheet: View {
                         }
                         .padding(.horizontal)
                         
+                        // Number input configuration
+                        NumberInputConfigSection(
+                            numberEnabled: $numberEnabled,
+                            numberMin: $numberMin,
+                            numberMax: $numberMax,
+                            numberAllowDecimals: $numberAllowDecimals,
+                            numberRequired: $numberRequired
+                        )
+                        
                         HStack(spacing: 16) {
                             Button("Cancel") {
                                 dismiss()
@@ -1357,7 +1380,7 @@ struct AddPresetSheet: View {
                             
                             Button("Create") {
                                 if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory)
+                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired)
                                     dismiss()
                                 }
                             }
@@ -1381,14 +1404,19 @@ struct EditPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
     let preset: EventPreset
     let categories: [Category]
-    let onSave: (String, String, String, Category?) -> Void
+    let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool) -> Void
     
     @State private var presetName: String
     @State private var selectedIcon: String
     @State private var selectedColorHex: String
     @State private var selectedCategory: Category?
+    @State private var numberEnabled: Bool
+    @State private var numberMin: Double?
+    @State private var numberMax: Double?
+    @State private var numberAllowDecimals: Bool
+    @State private var numberRequired: Bool
     
-    init(preset: EventPreset, categories: [Category], onSave: @escaping (String, String, String, Category?) -> Void) {
+    init(preset: EventPreset, categories: [Category], onSave: @escaping (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool) -> Void) {
         self.preset = preset
         self.categories = categories
         self.onSave = onSave
@@ -1396,6 +1424,11 @@ struct EditPresetSheet: View {
         _selectedIcon = State(initialValue: preset.iconName)
         _selectedColorHex = State(initialValue: preset.colorHex ?? "#667eea")
         _selectedCategory = State(initialValue: preset.category)
+        _numberEnabled = State(initialValue: preset.numberEnabled)
+        _numberMin = State(initialValue: preset.numberMin)
+        _numberMax = State(initialValue: preset.numberMax)
+        _numberAllowDecimals = State(initialValue: preset.numberAllowDecimals)
+        _numberRequired = State(initialValue: preset.numberRequired)
     }
     
     var body: some View {
@@ -1450,6 +1483,15 @@ struct EditPresetSheet: View {
                         }
                         .padding(.horizontal)
                         
+                        // Number input configuration
+                        NumberInputConfigSection(
+                            numberEnabled: $numberEnabled,
+                            numberMin: $numberMin,
+                            numberMax: $numberMax,
+                            numberAllowDecimals: $numberAllowDecimals,
+                            numberRequired: $numberRequired
+                        )
+                        
                         HStack(spacing: 16) {
                             Button("Cancel") {
                                 dismiss()
@@ -1458,7 +1500,7 @@ struct EditPresetSheet: View {
                             
                             Button("Save") {
                                 if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory)
+                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired)
                                     dismiss()
                                 }
                             }
@@ -1907,7 +1949,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.3")
+                        Text("Version 1.4")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)
@@ -2236,6 +2278,7 @@ struct CSVRow {
     let longitude: String
     let locationName: String
     let address: String
+    let numberValue: String
 }
 
 // MARK: - Import Result
@@ -2411,6 +2454,171 @@ struct HelpStep: View {
             }
             
             Spacer()
+        }
+    }
+}
+
+// MARK: - Number Input Config Section
+struct NumberInputConfigSection: View {
+    @Binding var numberEnabled: Bool
+    @Binding var numberMin: Double?
+    @Binding var numberMax: Double?
+    @Binding var numberAllowDecimals: Bool
+    @Binding var numberRequired: Bool
+    
+    @State private var minText: String = ""
+    @State private var maxText: String = ""
+    @State private var showMinError = false
+    @State private var showMaxError = false
+    @State private var showRangeError = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "number")
+                    .font(.system(size: 16))
+                    .foregroundColor(.gray)
+                
+                Text("Enable Number Input")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Toggle("", isOn: $numberEnabled)
+                    .tint(Color(hex: "#667eea")!)
+            }
+            
+            if numberEnabled {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Configure the number input for this event type. Set min and max values to show a slider, or leave them empty to allow any number. Users can always enter numbers directly.")
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
+                    
+                    // Min value
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Minimum Value (Optional)")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                        
+                        TextField("Leave empty for no limit", text: $minText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(DarkTextFieldStyle())
+                            .onChange(of: minText) { oldValue, newValue in
+                                if let value = Double(newValue) {
+                                    numberMin = value
+                                    showMinError = false
+                                    validateRange()
+                                } else if newValue.isEmpty {
+                                    numberMin = nil
+                                    showMinError = false
+                                    validateRange()
+                                } else {
+                                    showMinError = true
+                                }
+                            }
+                        
+                        if showMinError {
+                            Text("Please enter a valid number")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(hex: "#EF4444")!)
+                        }
+                    }
+                    
+                    // Max value
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Maximum Value (Optional)")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                        
+                        TextField("Leave empty for no limit", text: $maxText)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(DarkTextFieldStyle())
+                            .onChange(of: maxText) { oldValue, newValue in
+                                if let value = Double(newValue) {
+                                    numberMax = value
+                                    showMaxError = false
+                                    validateRange()
+                                } else if newValue.isEmpty {
+                                    numberMax = nil
+                                    showMaxError = false
+                                    validateRange()
+                                } else {
+                                    showMaxError = true
+                                }
+                            }
+                        
+                        if showMaxError {
+                            Text("Please enter a valid number")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(hex: "#EF4444")!)
+                        }
+                    }
+                    
+                    if showRangeError {
+                        Text("Maximum must be greater than minimum")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "#EF4444")!)
+                    }
+                    
+                    // Allow Decimals toggle
+                    HStack {
+                        Image(systemName: "number.square")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                        
+                        Text("Allow Decimals")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $numberAllowDecimals)
+                            .tint(Color(hex: "#667eea")!)
+                    }
+                    .padding(.top, 4)
+                    
+                    // Required toggle
+                    HStack {
+                        Image(systemName: "exclamationmark.circle")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                        
+                        Text("Required")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Toggle("", isOn: $numberRequired)
+                            .tint(Color(hex: "#667eea")!)
+                    }
+                    .padding(.top, 4)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .padding()
+        .background(Color(hex: "#252540")!)
+        .cornerRadius(16)
+        .padding(.horizontal)
+        .onAppear {
+            if let min = numberMin {
+                minText = numberAllowDecimals ? String(min) : String(format: "%.0f", min)
+            }
+            if let max = numberMax {
+                maxText = numberAllowDecimals ? String(max) : String(format: "%.0f", max)
+            }
+        }
+    }
+    
+    private func validateRange() {
+        if let min = numberMin, let max = numberMax {
+            // Only validate if both are set
+            showRangeError = max <= min
+        } else {
+            // If either is missing, no range error
+            showRangeError = false
         }
     }
 }

@@ -27,7 +27,10 @@ final class TrackedEvent {
     var locationName: String?
     var address: String?
     
-    init(preset: EventPreset, notes: String? = nil, latitude: Double? = nil, longitude: Double? = nil, locationName: String? = nil, address: String? = nil) {
+    // Number value (optional, only for presets with number input enabled)
+    var numberValue: Double?
+    
+    init(preset: EventPreset, notes: String? = nil, latitude: Double? = nil, longitude: Double? = nil, locationName: String? = nil, address: String? = nil, numberValue: Double? = nil) {
         self.id = UUID()
         self.timestamp = Date()
         self.notes = notes
@@ -44,6 +47,9 @@ final class TrackedEvent {
         self.longitude = longitude
         self.locationName = locationName
         self.address = address
+        
+        // Number value
+        self.numberValue = numberValue
     }
     
     var color: Color {

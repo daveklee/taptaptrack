@@ -2,6 +2,24 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.4] - 2025-12-22
+
+### Added
+- **Number Input for Events**: Add numeric values to your tracked events
+  - Configure number input per event preset in the Manage screen
+  - Optional min/max range configuration - set both to show a slider, or leave empty to allow any number
+  - Choose between whole numbers only or allow decimals
+  - Slider interface for quick number selection when range is configured
+  - Direct text input for precise values or when no range is set
+  - Number values appear in confirmation screen and edit screen
+  - Number values are included in CSV export/import for data portability
+  - Flexible configuration: use sliders for bounded ranges (e.g., 1-10 rating) or free-form input for unbounded values (e.g., weight, distance)
+
+### Changed
+- CSV export now includes number value column
+- CSV import supports number values from exported files
+- Enhanced export/import compatibility with number data
+
 ## [1.3] - 2025-12-22
 
 ### Added

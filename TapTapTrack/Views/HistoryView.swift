@@ -616,7 +616,7 @@ struct HistoryView: View {
     }
     
     nonisolated private static func generateCSV(from events: [TrackedEvent]) -> String {
-        var csv = "Date,Time,Event,Category,Icon,Color,Notes,Latitude,Longitude,Location Name,Address\n"
+        var csv = "Date,Time,Event,Category,Icon,Color,Notes,Latitude,Longitude,Location Name,Address,Number Value\n"
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .short
@@ -636,8 +636,9 @@ struct HistoryView: View {
             let longitude = event.longitude != nil ? String(event.longitude!) : ""
             let locationName = (event.locationName ?? "").replacingOccurrences(of: ",", with: ";")
             let address = (event.address ?? "").replacingOccurrences(of: ",", with: ";").replacingOccurrences(of: "\n", with: " ")
+            let numberValue = event.numberValue != nil ? String(event.numberValue!) : ""
             
-            csv += "\(date),\(time),\(eventName),\(category),\(iconName),\(colorHex),\"\(notes)\",\(latitude),\(longitude),\"\(locationName)\",\"\(address)\"\n"
+            csv += "\(date),\(time),\(eventName),\(category),\(iconName),\(colorHex),\"\(notes)\",\(latitude),\(longitude),\"\(locationName)\",\"\(address)\",\(numberValue)\n"
         }
         
         return csv
@@ -775,12 +776,27 @@ struct EventHistoryCard: View {
                         .foregroundColor(.gray)
                 }
                 
-                if let notes = event.notes, !notes.isEmpty {
-                    Text("\"\(notes)\"")
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(.gray)
-                        .italic()
-                        .lineLimit(2)
+                // Notes and/or number value on the same line
+                if let notes = event.notes, !notes.isEmpty || event.numberValue != nil {
+                    HStack(spacing: 8) {
+                        if let notes = event.notes, !notes.isEmpty {
+                            Text("\"\(notes)\"")
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundColor(.gray)
+                                .italic()
+                                .lineLimit(2)
+                        }
+                        
+                        if let numberValue = event.numberValue {
+                            Text(formatNumberValue(numberValue))
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.gray.opacity(0.8))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color(hex: "#3a3a5e")!.opacity(0.6))
+                                .cornerRadius(8)
+                        }
+                    }
                 }
             }
             
@@ -810,6 +826,18 @@ struct EventHistoryCard: View {
         .onTapGesture {
             onTap()
         }
+    }
+    
+    private func formatNumberValue(_ value: Double) -> String {
+        // If it's a whole number, show without decimals
+        if abs(value.truncatingRemainder(dividingBy: 1)) < 0.001 {
+            return String(format: "%.0f", value)
+        }
+        // Otherwise, show up to 2 decimal places, removing trailing zeros
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.2f", value)
     }
 }
 
