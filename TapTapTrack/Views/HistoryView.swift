@@ -777,7 +777,7 @@ struct EventHistoryCard: View {
                 }
                 
                 // Notes and/or number value on the same line
-                if let notes = event.notes, !notes.isEmpty || event.numberValue != nil {
+                if (event.notes != nil && !event.notes!.isEmpty) || event.numberValue != nil {
                     HStack(spacing: 8) {
                         if let notes = event.notes, !notes.isEmpty {
                             Text("\"\(notes)\"")
