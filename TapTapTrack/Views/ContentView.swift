@@ -7,6 +7,8 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .track
+    @Binding var pendingEventID: UUID?
+    @State private var shouldSwitchToTrack = false
     
     enum Tab {
         case track, history, trends, manage
@@ -18,7 +20,7 @@ struct ContentView: View {
             Group {
                 switch selectedTab {
                 case .track:
-                    TrackView()
+                    TrackView(pendingEventID: $pendingEventID)
                 case .history:
                     HistoryView()
                 case .trends:
@@ -32,6 +34,21 @@ struct ContentView: View {
             CustomTabBar(selectedTab: $selectedTab)
         }
         .ignoresSafeArea(.keyboard)
+        .onAppear {
+            // Switch to Track tab if we have a pending event or preset ID
+            if shouldSwitchToTrack || pendingEventID != nil {
+                selectedTab = .track
+                shouldSwitchToTrack = false
+            }
+        }
+        .onChange(of: pendingEventID) { oldValue, newValue in
+            if newValue != nil {
+                selectedTab = .track
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToTrackTab"))) { _ in
+            selectedTab = .track
+        }
     }
 }
 
@@ -133,6 +150,6 @@ struct TabBarButton: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(pendingEventID: .constant(nil))
 }
 

@@ -21,6 +21,13 @@ struct TrackView: View {
     @State private var isCapturingLocation = false
     @State private var eventCapturingLocation: TrackedEvent?
     
+    // Pending event from widget (optional for backward compatibility)
+    @Binding var pendingEventID: UUID?
+    
+    init(pendingEventID: Binding<UUID?> = .constant(nil)) {
+        self._pendingEventID = pendingEventID
+    }
+    
     private var eventsToday: Int {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -140,6 +147,84 @@ struct TrackView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .onAppear {
+            // Handle pending event from widget
+            if let eventID = pendingEventID {
+                handlePendingEvent(eventID: eventID)
+                DispatchQueue.main.async {
+                    pendingEventID = nil
+                }
+            } else {
+                // Also check for pending preset ID (from widget App Intent or deep link)
+                // Add a small delay to ensure SwiftData is ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    handlePendingPresetID()
+                }
+            }
+        }
+        .onChange(of: pendingEventID) { oldValue, newValue in
+            if let eventID = newValue {
+                handlePendingEvent(eventID: eventID)
+                DispatchQueue.main.async {
+                    pendingEventID = nil
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Check for pending preset ID when app comes to foreground
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                handlePendingPresetID()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Also check when app becomes active (handles cold start from widget)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                handlePendingPresetID()
+            }
+        }
+    }
+    
+    private func handlePendingEvent(eventID: UUID) {
+        // Find the event that was created by the widget
+        let descriptor = FetchDescriptor<TrackedEvent>(
+            predicate: #Predicate<TrackedEvent> { $0.id == eventID }
+        )
+        
+        if let event = try? modelContext.fetch(descriptor).first {
+            // Show confirmation screen
+            eventForConfirmation = event
+            
+            // If location is needed, start capturing
+            let category = event.preset?.category
+            let needsLocation = category?.locationTrackingEnabled ?? false
+            
+            if needsLocation {
+                eventCapturingLocation = event
+                Task {
+                    await updateEventWithLocation(event: event, preset: event.preset!)
+                }
+            }
+        } else {
+            // Event not found, might need to create it from preset ID
+            // Check if we have a pending preset ID from widget or deep link
+            handlePendingPresetID()
+        }
+    }
+    
+    private func handlePendingPresetID() {
+        if let presetIDString = UserDefaults(suiteName: "group.com.taptaptrack")?.string(forKey: "pendingPresetID"),
+           let presetID = UUID(uuidString: presetIDString) {
+            let presetDescriptor = FetchDescriptor<EventPreset>(
+                predicate: #Predicate<EventPreset> { $0.id == presetID }
+            )
+            
+            if let preset = try? modelContext.fetch(presetDescriptor).first {
+                trackEvent(preset: preset)
+            }
+            
+            // Clear the stored preset ID
+            UserDefaults(suiteName: "group.com.taptaptrack")?.removeObject(forKey: "pendingPresetID")
         }
     }
     
