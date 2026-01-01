@@ -17,16 +17,18 @@ struct TapTapTrackWidget: Widget {
         AppIntentConfiguration(kind: kind, intent: QuickTrackWidgetConfiguration.self, provider: EventPresetProvider()) { entry in
             TapTapTrackWidgetEntryView(entry: entry)
                 .containerBackground(for: .widget) {
-                    if let darkColor = Color(hex: "#1a1a2e") {
-                        darkColor.opacity(0.75)
-                    } else {
-                        Color.black.opacity(0.75)
-                    }
+                    // Dark, semi-transparent background
+                    Rectangle()
+                        .fill(.thickMaterial)
+                        .overlay(
+                            Rectangle()
+                                .fill(Color.black.opacity(0.4))
+                        )
                 }
         }
         .configurationDisplayName("Quick Track")
         .description("Quickly track events without opening the app")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
@@ -206,8 +208,6 @@ struct TapTapTrackWidgetEntryView: View {
             SmallWidgetView(presets: entry.presets.prefix(4))
         case .systemMedium:
             MediumWidgetView(presets: entry.presets.prefix(6))
-        case .systemLarge:
-            LargeWidgetView(presets: entry.presets.prefix(8))
         default:
             SmallWidgetView(presets: entry.presets.prefix(4))
         }
@@ -219,45 +219,38 @@ struct SmallWidgetView: View {
     let presets: ArraySlice<PresetInfo>
     
     var body: some View {
-        GeometryReader { geometry in
-            if presets.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
-                    Text("No events")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // Small widget: 2x2 grid (4 presets max)
-                let gridPresets = Array(presets.prefix(4))
-                let spacing: CGFloat = 4
-                let padding: CGFloat = 4
-                let availableWidth = geometry.size.width - (padding * 2)
-                let availableHeight = geometry.size.height - (padding * 2)
-                let cardWidth = max(0, floor((availableWidth - spacing) / 2))
-                let cardHeight = max(0, floor((availableHeight - spacing) / 2))
-                
-                LazyVGrid(
-                    columns: [
-                        GridItem(.fixed(cardWidth), spacing: spacing),
-                        GridItem(.fixed(cardWidth), spacing: spacing)
-                    ],
-                    alignment: .center,
-                    spacing: spacing
-                ) {
-                    ForEach(gridPresets) { preset in
-                        Link(destination: URL(string: "taptaptrack://track/\(preset.id.uuidString)")!) {
-                            PresetCardView(preset: preset, size: .small)
-                                .frame(width: cardWidth, height: cardHeight)
-                        }
+        if presets.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.secondary)
+                Text("No events")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            // Small widget: 2x2 grid (4 presets max)
+            let gridPresets = Array(presets.prefix(4))
+            let spacing: CGFloat = 6
+            let padding: CGFloat = 8
+            
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: spacing),
+                    GridItem(.flexible(), spacing: spacing)
+                ],
+                alignment: .center,
+                spacing: spacing
+            ) {
+                ForEach(gridPresets) { preset in
+                    Link(destination: URL(string: "taptaptrack://track/\(preset.id.uuidString)")!) {
+                        PresetCardView(preset: preset, size: .small)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(padding)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(padding)
         }
     }
 }
@@ -267,46 +260,40 @@ struct MediumWidgetView: View {
     let presets: ArraySlice<PresetInfo>
     
     var body: some View {
-        GeometryReader { geometry in
-            if presets.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.secondary)
-                    Text("No events configured")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // Medium widget: 3x2 grid (6 presets max)
-                let gridPresets = Array(presets.prefix(6))
-                let spacing: CGFloat = 4
-                let padding: CGFloat = 4
-                let availableWidth = geometry.size.width - (padding * 2)
-                let availableHeight = geometry.size.height - (padding * 2)
-                let cardWidth = max(0, floor((availableWidth - (spacing * 2)) / 3))
-                let cardHeight = max(0, floor((availableHeight - spacing) / 2))
-                
-                LazyVGrid(
-                    columns: [
-                        GridItem(.fixed(cardWidth), spacing: spacing),
-                        GridItem(.fixed(cardWidth), spacing: spacing),
-                        GridItem(.fixed(cardWidth), spacing: spacing)
-                    ],
-                    alignment: .center,
-                    spacing: spacing
-                ) {
-                    ForEach(gridPresets) { preset in
-                        Link(destination: URL(string: "taptaptrack://track/\(preset.id.uuidString)")!) {
-                            PresetCardView(preset: preset, size: .medium)
-                                .frame(width: cardWidth, height: cardHeight)
-                        }
+        if presets.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 36))
+                    .foregroundStyle(.secondary)
+                Text("No events configured")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            // Medium widget: 3x2 grid (6 presets max)
+            let gridPresets = Array(presets.prefix(6))
+            let spacing: CGFloat = 6
+            let padding: CGFloat = 8
+            
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: spacing),
+                    GridItem(.flexible(), spacing: spacing),
+                    GridItem(.flexible(), spacing: spacing)
+                ],
+                alignment: .center,
+                spacing: spacing
+            ) {
+                ForEach(gridPresets) { preset in
+                    Link(destination: URL(string: "taptaptrack://track/\(preset.id.uuidString)")!) {
+                        PresetCardView(preset: preset, size: .medium)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(padding)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(padding)
         }
     }
 }
@@ -316,50 +303,43 @@ struct LargeWidgetView: View {
     let presets: ArraySlice<PresetInfo>
     
     var body: some View {
-        GeometryReader { geometry in
-            if presets.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.secondary)
-                    Text("No events configured")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                    Text("Add events in the app")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // Large widget: 4x2 grid (8 presets max)
-                let gridPresets = Array(presets.prefix(8))
-                let spacing: CGFloat = 6
-                let padding: CGFloat = 6
-                let availableWidth = geometry.size.width - (padding * 2)
-                let availableHeight = geometry.size.height - (padding * 2)
-                let cardWidth = max(0, floor((availableWidth - (spacing * 3)) / 4))
-                let cardHeight = max(0, floor((availableHeight - spacing) / 2))
-                
-                LazyVGrid(
-                    columns: [
-                        GridItem(.fixed(cardWidth), spacing: spacing),
-                        GridItem(.fixed(cardWidth), spacing: spacing),
-                        GridItem(.fixed(cardWidth), spacing: spacing),
-                        GridItem(.fixed(cardWidth), spacing: spacing)
-                    ],
-                    alignment: .center,
-                    spacing: spacing
-                ) {
-                    ForEach(gridPresets) { preset in
-                        Link(destination: URL(string: "taptaptrack://track/\(preset.id.uuidString)")!) {
-                            PresetCardView(preset: preset, size: .large)
-                                .frame(width: cardWidth, height: cardHeight)
-                        }
+        if presets.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.secondary)
+                Text("No events configured")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                Text("Add events in the app")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            // Large widget: 4x2 grid (8 presets max)
+            let gridPresets = Array(presets.prefix(8))
+            let spacing: CGFloat = 10
+            let padding: CGFloat = 16
+            
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: spacing),
+                    GridItem(.flexible(), spacing: spacing),
+                    GridItem(.flexible(), spacing: spacing),
+                    GridItem(.flexible(), spacing: spacing)
+                ],
+                alignment: .center,
+                spacing: spacing
+            ) {
+                ForEach(gridPresets) { preset in
+                    Link(destination: URL(string: "taptaptrack://track/\(preset.id.uuidString)")!) {
+                        PresetCardView(preset: preset, size: .large)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(padding)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(padding)
         }
     }
 }
@@ -395,8 +375,8 @@ enum PresetCardSize {
     var padding: CGFloat {
         switch self {
         case .small: return 8
-        case .medium: return 10
-        case .large: return 12
+        case .medium: return 8
+        case .large: return 14
         }
     }
 }
@@ -413,47 +393,48 @@ struct PresetCardView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             // Card background with gradient (matching app design)
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 12)
                 .fill(
                     LinearGradient(
                         colors: [
                             preset.color,
-                            preset.color.opacity(0.7)
+                            preset.color.opacity(0.8)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
+                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             
             // Content
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 Image(systemName: preset.iconName)
                     .font(.system(size: size.iconSize, weight: .medium))
                     .foregroundColor(.white)
+                    .symbolRenderingMode(.hierarchical)
                 
                 Text(preset.name)
                     .font(size.fontSize)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.7)
+                    .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(size.padding)
-            .padding(.top, 2)
             
             // Plus button indicator (matching app design)
             Circle()
-                .fill(Color.black.opacity(0.3))
-                .frame(width: 18, height: 18)
+                .fill(.ultraThinMaterial)
+                .frame(width: 20, height: 20)
                 .overlay(
                     Image(systemName: "plus")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
                 )
-                .padding(5)
+                .padding(6)
         }
-        .clipped()
         .contentShape(Rectangle())
     }
 }
