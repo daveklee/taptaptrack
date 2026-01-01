@@ -1949,7 +1949,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.4")
+                        Text("Version 1.4.1")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)

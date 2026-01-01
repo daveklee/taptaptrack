@@ -22,6 +22,7 @@ This is a simple iOS app for tracking life events with just one tap. Use it, mod
 - **Enhanced search (v1.3)**: Powerful search and date range filtering for large event datasets
 - **Performance optimized (v1.3)**: Handles thousands of events smoothly with lazy loading and optimized filtering
 - **Number input (v1.4)**: Add numeric values to events with optional slider and direct input. Configure min/max ranges or allow any number. Support for whole numbers or decimals.
+- **iOS Widgets (v1.4.1)**: Track events directly from your home screen with small and medium widgets. Customize which events appear in your widget.
 - View your history and export to CSV
 
 ## Installation
