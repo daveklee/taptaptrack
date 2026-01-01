@@ -13,6 +13,18 @@ All notable changes to Tap Tap Track will be documented in this file.
   - One-tap tracking directly from the widget without opening the app
   - Beautiful, clean design following iOS best practices
 
+### Changed
+- **Location tracking moved to preset level**: Location tracking is now configured per event preset instead of per category
+  - More granular control - enable location tracking for specific events within a category
+  - Configure location tracking in the preset creation/edit screens (similar to number input configuration)
+  - Automatic migration preserves existing location tracking settings from categories to presets
+  - Location indicators shown in preset list for easy identification
+- **Improved preset management UI**:
+  - Category selection moved to top of edit preset view (right after name field)
+  - Visual indicators in preset list showing location and number input enabled status
+  - Small location icon appears next to preset name when location tracking is enabled
+  - Small number icon appears next to preset name when number input is enabled
+
 ## [1.4] - 2025-12-22
 
 ### Added
