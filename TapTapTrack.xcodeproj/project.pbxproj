@@ -27,6 +27,7 @@
 		C25D20712F04BDB400D6D83B /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0000080000000000000001 /* Category.swift */; };
 		C25D20722F04BDB400D6D83B /* EventPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000A0000000000000001 /* EventPreset.swift */; };
 		C25D20732F04BDB400D6D83B /* TrackedEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A00000C0000000000000001 /* TrackedEvent.swift */; };
+		C2E5DF5A2F06C9AF00709E4C /* TrackEventIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2E5DF592F06C9AF00709E4C /* TrackEventIntent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +76,7 @@
 		C25D206E2F04BC3C00D6D83B /* TapTapTrack.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TapTapTrack.entitlements; sourceTree = "<group>"; };
 		C25D206F2F04BC8700D6D83B /* TapTapTrackWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TapTapTrackWidgetExtension.entitlements; sourceTree = "<group>"; };
 		C25D20702F04BCEC00D6D83B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C2E5DF592F06C9AF00709E4C /* TrackEventIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackEventIntent.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -125,6 +127,7 @@
 		2A0000180000000000000001 /* TapTapTrack */ = {
 			isa = PBXGroup;
 			children = (
+				C2E5DF592F06C9AF00709E4C /* TrackEventIntent.swift */,
 				C25D20702F04BCEC00D6D83B /* Info.plist */,
 				C25D206E2F04BC3C00D6D83B /* TapTapTrack.entitlements */,
 				2A0000020000000000000001 /* TapTapTrackApp.swift */,
@@ -312,6 +315,7 @@
 				2A0000130000000000000001 /* AppBackground.swift in Sources */,
 				2A0000270000000000000001 /* EditEventSheet.swift in Sources */,
 				2A00002B0000000000000001 /* LocationManager.swift in Sources */,
+				C2E5DF5A2F06C9AF00709E4C /* TrackEventIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

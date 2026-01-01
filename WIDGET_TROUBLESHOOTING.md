@@ -72,6 +72,13 @@ print("UserDefaults value: \(UserDefaults(suiteName: "group.com.taptaptrack")?.s
 ## Common Issues
 
 - **"Connection invalidated"**: App Intent crashed - fixed by using Link instead
+
+- **"Invalid bundle record for current process: (null)"**: This is a common simulator warning that usually doesn't affect functionality. To fix:
+  1. Clean Build Folder (Shift+Cmd+K)
+  2. Reset Simulator: Device → Erase All Content and Settings
+  3. Delete Derived Data: `rm -rf ~/Library/Developer/Xcode/DerivedData`
+  4. Rebuild and run the app
+  5. If it persists, it's usually safe to ignore - the widget will still work
 - **Nothing happens on tap**: URL scheme not configured or deep link handler not working
 - **App opens but no event created**: UserDefaults not shared or TrackView not checking for pending preset ID
 

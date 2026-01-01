@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import AppIntents
 
 @main
 struct TapTapTrackApp: App {
