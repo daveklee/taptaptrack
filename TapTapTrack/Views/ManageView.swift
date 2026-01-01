@@ -94,29 +94,29 @@ struct ManageView: View {
             }
         }
         .sheet(isPresented: $showingAddCategory) {
-            AddCategorySheet { name, locationTrackingEnabled in
-                addCategory(name: name, locationTrackingEnabled: locationTrackingEnabled)
+            AddCategorySheet { name in
+                addCategory(name: name)
             }
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .sheet(item: $categoryToEdit) { category in
-            EditCategorySheet(category: category) { name, locationTrackingEnabled in
-                updateCategory(category, name: name, locationTrackingEnabled: locationTrackingEnabled)
+            EditCategorySheet(category: category) { name in
+                updateCategory(category, name: name)
             }
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingAddPreset) {
-            AddPresetSheet(categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired in
-                addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired)
+            AddPresetSheet(categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
+                addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
         .sheet(item: $presetToEdit) { preset in
-            EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired in
-                updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired)
+            EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
+                updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -198,10 +198,10 @@ struct ManageView: View {
         }
     }
     
-    private func addCategory(name: String, locationTrackingEnabled: Bool = false) {
+    private func addCategory(name: String) {
         // Set order to be after the last category
         let maxOrder = categories.map { $0.order }.max() ?? -1
-        let category = Category(name: name, locationTrackingEnabled: locationTrackingEnabled, order: maxOrder + 1)
+        let category = Category(name: name, locationTrackingEnabled: false, order: maxOrder + 1)
         modelContext.insert(category)
         hapticFeedback()
     }
@@ -211,19 +211,20 @@ struct ManageView: View {
         hapticFeedback()
     }
     
-    private func updateCategory(_ category: Category, name: String, locationTrackingEnabled: Bool) {
+    private func updateCategory(_ category: Category, name: String) {
         category.name = name
-        category.locationTrackingEnabled = locationTrackingEnabled
+        // Note: locationTrackingEnabled is kept on Category for backward compatibility
+        // but is no longer used - location tracking is now at the preset level
         hapticFeedback()
     }
     
-    private func addPreset(name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false) {
-        let preset = EventPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired)
+    private func addPreset(name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false, locationTrackingEnabled: Bool = false) {
+        let preset = EventPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
         modelContext.insert(preset)
         hapticFeedback()
     }
     
-    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false) {
+    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false, locationTrackingEnabled: Bool = false) {
         preset.name = name
         preset.iconName = iconName
         preset.colorHex = colorHex
@@ -233,6 +234,7 @@ struct ManageView: View {
         preset.numberMax = numberMax
         preset.numberAllowDecimals = numberAllowDecimals
         preset.numberRequired = numberRequired
+        preset.locationTrackingEnabled = locationTrackingEnabled
         hapticFeedback()
     }
     
@@ -642,7 +644,8 @@ struct ManageView: View {
             importedCategory = existing
         } else {
             let maxOrder = existingCategories.map { $0.order }.max() ?? -1
-            importedCategory = Category(name: "Imported", colorHex: "#8B5CF6", locationTrackingEnabled: true, order: maxOrder + 1)
+            // Location tracking is now at preset level, not category level
+            importedCategory = Category(name: "Imported", colorHex: "#8B5CF6", locationTrackingEnabled: false, order: maxOrder + 1)
             modelContext.insert(importedCategory)
         }
         
@@ -717,7 +720,8 @@ struct ManageView: View {
         if let existing = existingPresets.first(where: { $0.name == defaultPresetName && $0.category?.name == "Imported" }) {
             preset = existing
         } else {
-            preset = EventPreset(name: defaultPresetName, iconName: "location.fill", colorHex: "#8B5CF6", category: importedCategory)
+            // Foursquare checkins should have location tracking enabled
+            preset = EventPreset(name: defaultPresetName, iconName: "location.fill", colorHex: "#8B5CF6", category: importedCategory, locationTrackingEnabled: true)
             modelContext.insert(preset)
         }
         
@@ -950,19 +954,10 @@ struct CategoryCard: View {
     
     var body: some View {
         HStack {
-            // Category name and location indicator
-            HStack(spacing: 8) {
-                Text(category.name)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
-                
-                // Location enabled checkbox
-                if category.locationTrackingEnabled {
-                    Image(systemName: "location.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#60A5FA")!)
-                }
-            }
+            // Category name
+            Text(category.name)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
             
             Spacer()
             
@@ -1065,9 +1060,25 @@ struct PresetCard: View {
             
             // Info
             VStack(alignment: .leading, spacing: 2) {
-                Text(preset.name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Text(preset.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    // Location indicator
+                    if preset.locationTrackingEnabled {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "#60A5FA")!)
+                    }
+                    
+                    // Number indicator
+                    if preset.numberEnabled {
+                        Image(systemName: "number")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(hex: "#60A5FA")!)
+                    }
+                }
                 
                 Text(preset.category?.name ?? "No Category")
                     .font(.system(size: 13))
@@ -1122,11 +1133,8 @@ struct FloatingActionButton: View {
 // MARK: - Add Category Sheet
 struct AddCategorySheet: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var locationManager = LocationManager()
     @State private var categoryName = ""
-    @State private var locationTrackingEnabled = false
-    @State private var showingPermissionAlert = false
-    let onSave: (String, Bool) -> Void
+    let onSave: (String) -> Void
     
     var body: some View {
         NavigationView {
@@ -1142,37 +1150,6 @@ struct AddCategorySheet: View {
                         .textFieldStyle(DarkTextFieldStyle())
                         .padding(.horizontal)
                     
-                    // Location logging toggle
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
-                            
-                            Text("Enable Location Logging")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: $locationTrackingEnabled)
-                                .tint(Color(hex: "#667eea")!)
-                                .onChange(of: locationTrackingEnabled) { oldValue, newValue in
-                                    if newValue && locationManager.authorizationStatus == .notDetermined {
-                                        locationManager.requestPermission()
-                                    }
-                                }
-                        }
-                        
-                        Text("When enabled, events in this category will automatically capture your location and nearby business names.")
-                            .font(.system(size: 13))
-                            .foregroundColor(.gray)
-                    }
-                    .padding()
-                    .background(Color(hex: "#252540")!)
-                    .cornerRadius(16)
-                    .padding(.horizontal)
-                    
                     HStack(spacing: 16) {
                         Button("Cancel") {
                             dismiss()
@@ -1181,7 +1158,7 @@ struct AddCategorySheet: View {
                         
                         Button("Create") {
                             if !categoryName.isEmpty {
-                                onSave(categoryName, locationTrackingEnabled)
+                                onSave(categoryName)
                                 dismiss()
                             }
                         }
@@ -1203,17 +1180,14 @@ struct AddCategorySheet: View {
 struct EditCategorySheet: View {
     @Environment(\.dismiss) private var dismiss
     let category: Category
-    let onSave: (String, Bool) -> Void
+    let onSave: (String) -> Void
     
-    @StateObject private var locationManager = LocationManager()
     @State private var categoryName: String
-    @State private var locationTrackingEnabled: Bool
     
-    init(category: Category, onSave: @escaping (String, Bool) -> Void) {
+    init(category: Category, onSave: @escaping (String) -> Void) {
         self.category = category
         self.onSave = onSave
         _categoryName = State(initialValue: category.name)
-        _locationTrackingEnabled = State(initialValue: category.locationTrackingEnabled)
     }
     
     var body: some View {
@@ -1230,37 +1204,6 @@ struct EditCategorySheet: View {
                         .textFieldStyle(DarkTextFieldStyle())
                         .padding(.horizontal)
                     
-                    // Location logging toggle
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.gray)
-                            
-                            Text("Enable Location Logging")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: $locationTrackingEnabled)
-                                .tint(Color(hex: "#667eea")!)
-                                .onChange(of: locationTrackingEnabled) { oldValue, newValue in
-                                    if newValue && locationManager.authorizationStatus == .notDetermined {
-                                        locationManager.requestPermission()
-                                    }
-                                }
-                        }
-                        
-                        Text("When enabled, events in this category will automatically capture your location and nearby business names.")
-                            .font(.system(size: 13))
-                            .foregroundColor(.gray)
-                    }
-                    .padding()
-                    .background(Color(hex: "#252540")!)
-                    .cornerRadius(16)
-                    .padding(.horizontal)
-                    
                     HStack(spacing: 16) {
                         Button("Cancel") {
                             dismiss()
@@ -1269,7 +1212,7 @@ struct EditCategorySheet: View {
                         
                         Button("Save") {
                             if !categoryName.isEmpty {
-                                onSave(categoryName, locationTrackingEnabled)
+                                onSave(categoryName)
                                 dismiss()
                             }
                         }
@@ -1291,7 +1234,7 @@ struct EditCategorySheet: View {
 struct AddPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
     let categories: [Category]
-    let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool) -> Void
+    let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool, Bool) -> Void
     
     @State private var presetName = ""
     @State private var selectedIcon = "star.fill"
@@ -1302,6 +1245,8 @@ struct AddPresetSheet: View {
     @State private var numberMax: Double? = nil
     @State private var numberAllowDecimals = false
     @State private var numberRequired = false
+    @State private var locationTrackingEnabled = false
+    @StateObject private var locationManager = LocationManager()
     
     var body: some View {
         NavigationView {
@@ -1364,6 +1309,12 @@ struct AddPresetSheet: View {
                             numberRequired: $numberRequired
                         )
                         
+                        // Location tracking configuration
+                        LocationTrackingConfigSection(
+                            locationTrackingEnabled: $locationTrackingEnabled,
+                            locationManager: locationManager
+                        )
+                        
                         HStack(spacing: 16) {
                             Button("Cancel") {
                                 dismiss()
@@ -1372,7 +1323,7 @@ struct AddPresetSheet: View {
                             
                             Button("Create") {
                                 if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired)
+                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled)
                                     dismiss()
                                 }
                             }
@@ -1396,7 +1347,7 @@ struct EditPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
     let preset: EventPreset
     let categories: [Category]
-    let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool) -> Void
+    let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool, Bool) -> Void
     
     @State private var presetName: String
     @State private var selectedIcon: String
@@ -1407,8 +1358,10 @@ struct EditPresetSheet: View {
     @State private var numberMax: Double?
     @State private var numberAllowDecimals: Bool
     @State private var numberRequired: Bool
+    @State private var locationTrackingEnabled: Bool
+    @StateObject private var locationManager = LocationManager()
     
-    init(preset: EventPreset, categories: [Category], onSave: @escaping (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool) -> Void) {
+    init(preset: EventPreset, categories: [Category], onSave: @escaping (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool, Bool) -> Void) {
         self.preset = preset
         self.categories = categories
         self.onSave = onSave
@@ -1421,6 +1374,7 @@ struct EditPresetSheet: View {
         _numberMax = State(initialValue: preset.numberMax)
         _numberAllowDecimals = State(initialValue: preset.numberAllowDecimals)
         _numberRequired = State(initialValue: preset.numberRequired)
+        _locationTrackingEnabled = State(initialValue: preset.locationTrackingEnabled)
     }
     
     var body: some View {
@@ -1445,6 +1399,16 @@ struct EditPresetSheet: View {
                         }
                         .padding(.horizontal)
                         
+                        // Category picker
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Category")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.gray)
+                            
+                            CategoryPicker(categories: categories, selectedCategory: $selectedCategory)
+                        }
+                        .padding(.horizontal)
+                        
                         // Icon picker
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Icon")
@@ -1465,16 +1429,6 @@ struct EditPresetSheet: View {
                             ColorPicker(selectedColorHex: $selectedColorHex)
                         }
                         
-                        // Category picker
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Category")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                            
-                            CategoryPicker(categories: categories, selectedCategory: $selectedCategory)
-                        }
-                        .padding(.horizontal)
-                        
                         // Number input configuration
                         NumberInputConfigSection(
                             numberEnabled: $numberEnabled,
@@ -1482,6 +1436,12 @@ struct EditPresetSheet: View {
                             numberMax: $numberMax,
                             numberAllowDecimals: $numberAllowDecimals,
                             numberRequired: $numberRequired
+                        )
+                        
+                        // Location tracking configuration
+                        LocationTrackingConfigSection(
+                            locationTrackingEnabled: $locationTrackingEnabled,
+                            locationManager: locationManager
                         )
                         
                         HStack(spacing: 16) {
@@ -1492,7 +1452,7 @@ struct EditPresetSheet: View {
                             
                             Button("Save") {
                                 if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired)
+                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled)
                                     dismiss()
                                 }
                             }
@@ -2612,6 +2572,47 @@ struct NumberInputConfigSection: View {
             // If either is missing, no range error
             showRangeError = false
         }
+    }
+}
+
+// MARK: - Location Tracking Config Section
+struct LocationTrackingConfigSection: View {
+    @Binding var locationTrackingEnabled: Bool
+    @ObservedObject var locationManager: LocationManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.gray)
+                
+                Text("Enable Location Tracking")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Toggle("", isOn: $locationTrackingEnabled)
+                    .tint(Color(hex: "#667eea")!)
+                    .onChange(of: locationTrackingEnabled) { oldValue, newValue in
+                        if newValue && locationManager.authorizationStatus == .notDetermined {
+                            locationManager.requestPermission()
+                        }
+                    }
+            }
+            
+            if locationTrackingEnabled {
+                Text("When enabled, events tracked with this preset will automatically capture your location and nearby business names.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .padding(.top, 4)
+            }
+        }
+        .padding()
+        .background(Color(hex: "#252540")!)
+        .cornerRadius(16)
+        .padding(.horizontal)
     }
 }
 

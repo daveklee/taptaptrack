@@ -22,12 +22,15 @@ final class EventPreset {
     var numberAllowDecimals: Bool = false
     var numberRequired: Bool = false
     
+    // Location tracking configuration
+    var locationTrackingEnabled: Bool = false
+    
     var category: Category?
     
     @Relationship(deleteRule: .cascade, inverse: \TrackedEvent.preset)
     var trackedEvents: [TrackedEvent]?
     
-    init(name: String, iconName: String = "star.fill", colorHex: String = "#667eea", category: Category? = nil, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false) {
+    init(name: String, iconName: String = "star.fill", colorHex: String = "#667eea", category: Category? = nil, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false, locationTrackingEnabled: Bool = false) {
         self.id = UUID()
         self.name = name
         self.iconName = iconName
@@ -39,6 +42,7 @@ final class EventPreset {
         self.numberMax = numberMax
         self.numberAllowDecimals = numberAllowDecimals
         self.numberRequired = numberRequired
+        self.locationTrackingEnabled = locationTrackingEnabled
     }
     
     var color: Color {

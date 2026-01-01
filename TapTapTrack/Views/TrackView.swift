@@ -196,13 +196,13 @@ struct TrackView: View {
             eventForConfirmation = event
             
             // If location is needed, start capturing
-            let category = event.preset?.category
-            let needsLocation = category?.locationTrackingEnabled ?? false
+            let preset = event.preset
+            let needsLocation = preset?.locationTrackingEnabled ?? false
             
-            if needsLocation {
+            if needsLocation, let preset = preset {
                 eventCapturingLocation = event
                 Task {
-                    await updateEventWithLocation(event: event, preset: event.preset!)
+                    await updateEventWithLocation(event: event, preset: preset)
                 }
             }
         } else {
@@ -229,8 +229,7 @@ struct TrackView: View {
     }
     
     private func trackEvent(preset: EventPreset, notes: String? = nil) {
-        let category = preset.category
-        let needsLocation = category?.locationTrackingEnabled ?? false
+        let needsLocation = preset.locationTrackingEnabled
         
         // Always provide immediate feedback
         hapticFeedback()
@@ -254,8 +253,7 @@ struct TrackView: View {
     }
     
     private func trackEventAndEdit(preset: EventPreset) {
-        let category = preset.category
-        let needsLocation = category?.locationTrackingEnabled ?? false
+        let needsLocation = preset.locationTrackingEnabled
         
         // Always provide immediate feedback
         hapticFeedback()

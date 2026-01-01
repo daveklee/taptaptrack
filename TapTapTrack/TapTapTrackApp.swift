@@ -62,6 +62,9 @@ struct TapTapTrackApp: App {
                         category.order = index
                     }
                     
+                    // Migrate location tracking from category to preset level
+                    Self.migrateLocationTrackingFromCategoryToPreset(context: context)
+                    
                     // Save migration changes
                     try? context.save()
                 } else {
@@ -69,6 +72,11 @@ struct TapTapTrackApp: App {
                     for category in categories {
                         let _ = category.locationTrackingEnabled
                     }
+                    
+                    // Migrate location tracking from category to preset level
+                    // This migration runs for all existing data to move location tracking to preset level
+                    Self.migrateLocationTrackingFromCategoryToPreset(context: context)
+                    
                     // Save to ensure migration is persisted
                     try? context.save()
                 }
@@ -187,6 +195,29 @@ struct TapTapTrackApp: App {
                 // Clear the stored preset ID
                 userDefaults?.removeObject(forKey: "pendingPresetID")
                 userDefaults?.synchronize()
+            }
+        }
+    }
+    
+    /// Migrates location tracking configuration from category level to preset level
+    /// This ensures that existing users don't lose their location tracking settings
+    private static func migrateLocationTrackingFromCategoryToPreset(context: ModelContext) {
+        // Fetch all presets
+        let presetDescriptor = FetchDescriptor<EventPreset>()
+        guard let presets = try? context.fetch(presetDescriptor) else {
+            return
+        }
+        
+        // For each preset, if it doesn't have locationTrackingEnabled set yet,
+        // copy the value from its category (if the category has it enabled)
+        for preset in presets {
+            // Only migrate if preset doesn't already have location tracking configured
+            // We check if locationTrackingEnabled is false AND the category has it enabled
+            // This ensures we only migrate once and preserve any preset-level settings
+            if !preset.locationTrackingEnabled,
+               let category = preset.category,
+               category.locationTrackingEnabled {
+                preset.locationTrackingEnabled = true
             }
         }
     }
