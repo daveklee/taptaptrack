@@ -45,6 +45,7 @@ struct ManageView: View {
                         categories: categories,
                         onAdd: { showingAddCategory = true },
                         onEdit: { category in
+                            // Store category directly - same pattern as presets
                             categoryToEdit = category
                         },
                         onDelete: deleteCategory,
@@ -922,28 +923,19 @@ struct CategoriesSection: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 20)
             } else {
-                List {
-                    ForEach(categories) { category in
-                        CategoryCard(
-                            category: category,
-                            onEdit: { onEdit(category) },
-                            onDelete: { onDelete(category) },
-                            showDragHandle: editMode == .active
-                        )
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(
-                            top: 0,
-                            leading: 20,
-                            bottom: 12,
-                            trailing: editMode == .active ? 16 : 20
-                        ))
+                ScrollView {
+                    VStack(spacing: 12) {
+                        ForEach(categories) { category in
+                            CategoryCard(
+                                category: category,
+                                onEdit: { onEdit(category) },
+                                onDelete: { onDelete(category) },
+                                showDragHandle: editMode == .active
+                            )
+                        }
                     }
-                    .onMove(perform: editMode == .active ? onMove : nil)
+                    .padding(.horizontal, 20)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .environment(\.editMode, $editMode)
                 .frame(height: max(0, CGFloat(categories.count) * 72 + 20))
             }
         }
