@@ -6,6 +6,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import UIKit
 
 struct ManageView: View {
     @Environment(\.modelContext) private var modelContext
@@ -18,12 +19,15 @@ struct ManageView: View {
     @State private var categoryToEdit: Category?
     @State private var presetToEdit: EventPreset?
     @State private var presetToDelete: EventPreset?
+    @State private var categoryToDelete: Category?
     @State private var showingDeleteConfirmation = false
+    @State private var showingCategoryDeleteConfirmation = false
     @State private var isImporting: Bool = false
     @State private var showingFileImporter: Bool = false
     @State private var showingFoursquareImporter: Bool = false
     @State private var showingFoursquareHelp: Bool = false
     @State private var importResult: ImportResult?
+    @State private var showingDocumentPicker: Bool = false
     
     var body: some View {
         ZStack {
@@ -48,7 +52,10 @@ struct ManageView: View {
                             // Store category directly - same pattern as presets
                             categoryToEdit = category
                         },
-                        onDelete: deleteCategory,
+                        onDelete: { category in
+                            categoryToDelete = category
+                            showingCategoryDeleteConfirmation = true
+                        },
                         onMove: reorderCategories
                     )
                     
@@ -71,8 +78,22 @@ struct ManageView: View {
                     // Import Section
                     ImportSection(
                         isImporting: isImporting,
-                        onCSVImport: { showingFileImporter = true },
-                        onFoursquareImport: { showingFoursquareImporter = true },
+                        onCSVImport: {
+                            hapticFeedback()
+                            // Use document picker (more reliable than fileImporter)
+                            showingDocumentPicker = true
+                        },
+                        onFoursquareImport: { 
+                            // Workaround for SwiftUI fileImporter not showing after dismissal
+                            if showingFoursquareImporter {
+                                showingFoursquareImporter = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    showingFoursquareImporter = true
+                                }
+                            } else {
+                                showingFoursquareImporter = true
+                            }
+                        },
                         onFoursquareHelp: { showingFoursquareHelp = true }
                     )
                     
@@ -128,13 +149,21 @@ struct ManageView: View {
         }
         .fileImporter(
             isPresented: $showingFileImporter,
-            allowedContentTypes: [.commaSeparatedText, .text],
+            allowedContentTypes: [.commaSeparatedText, .text, .plainText],
             allowsMultipleSelection: false
         ) { result in
             switch result {
             case .success(let urls):
                 if let url = urls.first {
-                    importFromCSV(url: url)
+                    // Accept files with .csv extension or if it's not a directory
+                    let fileExtension = url.pathExtension.lowercased()
+                    if fileExtension == "csv" || (!url.hasDirectoryPath && fileExtension.isEmpty) {
+                        importFromCSV(url: url)
+                    } else {
+                        importResult = ImportResult(success: false, message: "Please select a CSV file (.csv extension).", importedCount: 0)
+                    }
+                } else {
+                    importResult = ImportResult(success: false, message: "No file was selected.", importedCount: 0)
                 }
             case .failure(let error):
                 importResult = ImportResult(success: false, message: "Failed to select file: \(error.localizedDescription)", importedCount: 0)
@@ -166,6 +195,18 @@ struct ManageView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .background(
+            DocumentPickerPresenter(
+                isPresented: $showingDocumentPicker,
+                allowedContentTypes: [.commaSeparatedText, .text, .plainText],
+                onDocumentPicked: { selectedURL in
+                    importFromCSV(url: selectedURL)
+                },
+                onCancel: {
+                    // User cancelled, do nothing
+                }
+            )
+        )
         .confirmationDialog(
             "Delete \"\(presetToDelete?.name ?? "Preset")\"?",
             isPresented: $showingDeleteConfirmation,
@@ -194,6 +235,49 @@ struct ManageView: View {
                 Text("This preset has \(eventCount) tracked event\(eventCount == 1 ? "" : "s"). You can delete everything, or keep the events and only remove the preset.")
             } else {
                 Text("This will remove the preset. No tracked events are associated with it.")
+            }
+        }
+        .confirmationDialog(
+            "Delete \"\(categoryToDelete?.name ?? "Category")\"?",
+            isPresented: $showingCategoryDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Category", role: .destructive) {
+                if let category = categoryToDelete {
+                    deleteCategory(category)
+                }
+                categoryToDelete = nil
+            }
+            
+            Button("Cancel", role: .cancel) {
+                categoryToDelete = nil
+            }
+        } message: {
+            if let category = categoryToDelete {
+                let presetCount = category.presets?.count ?? 0
+                var eventCount = 0
+                if let presets = category.presets {
+                    for preset in presets {
+                        eventCount += preset.trackedEvents?.count ?? 0
+                    }
+                }
+                
+                if presetCount > 0 || eventCount > 0 {
+                    var parts: [String] = []
+                    if presetCount > 0 {
+                        parts.append("all \(presetCount) preset\(presetCount == 1 ? "" : "s")")
+                    }
+                    if eventCount > 0 {
+                        parts.append("all \(eventCount) tracked event\(eventCount == 1 ? "" : "s")")
+                    }
+                    
+                    let itemsList = parts.joined(separator: " and ")
+                    return Text("This will permanently delete the category \"\(category.name)\", \(itemsList), and all associated data. This action cannot be undone.")
+                } else {
+                    return Text("This will permanently delete the category \"\(category.name)\". No presets or events are associated with it.")
+                }
+            } else {
+                return Text("This will permanently delete the category and all associated data. This action cannot be undone.")
             }
         }
     }
@@ -290,23 +374,15 @@ struct ManageView: View {
         
         Task.detached(priority: .userInitiated) {
             do {
-                // Start accessing security-scoped resource
-                guard url.startAccessingSecurityScopedResource() else {
-                    await MainActor.run {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            self.isImporting = false
-                        }
-                        self.importResult = ImportResult(success: false, message: "Unable to access the selected file.", importedCount: 0)
-                    }
-                    return
-                }
-                
-                defer {
-                    url.stopAccessingSecurityScopedResource()
-                }
-                
-                // Read CSV content
+                // Read CSV content (file is already accessible from temp location)
                 let csvString = try String(contentsOf: url, encoding: .utf8)
+                
+                // Clean up temp file after reading
+                defer {
+                    if url.path.contains("import_") && url.path.contains(".csv") {
+                        try? FileManager.default.removeItem(at: url)
+                    }
+                }
                 
                 // Parse CSV
                 let rows = ManageView.parseCSV(csvString: csvString)
@@ -316,7 +392,7 @@ struct ManageView: View {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             self.isImporting = false
                         }
-                        self.importResult = ImportResult(success: false, message: "CSV file is empty or invalid.", importedCount: 0)
+                        self.importResult = ImportResult(success: false, message: "CSV file is empty or invalid. Please check the file format.", importedCount: 0)
                     }
                     return
                 }
@@ -330,10 +406,23 @@ struct ManageView: View {
                     }
                     
                     if result.imported > 0 {
-                        var message = "Successfully imported \(result.imported) event\(result.imported == 1 ? "" : "s")."
+                        var messageParts: [String] = []
+                        messageParts.append("\(result.imported) event\(result.imported == 1 ? "" : "s")")
+                        
+                        if result.categoriesCreated > 0 {
+                            messageParts.append("\(result.categoriesCreated) categor\(result.categoriesCreated == 1 ? "y" : "ies")")
+                        }
+                        
+                        if result.presetsCreated > 0 {
+                            messageParts.append("\(result.presetsCreated) preset\(result.presetsCreated == 1 ? "" : "s")")
+                        }
+                        
+                        var message = "Successfully imported " + messageParts.joined(separator: ", ") + "."
+                        
                         if result.skipped > 0 {
                             message += " Skipped \(result.skipped) duplicate\(result.skipped == 1 ? "" : "s")."
                         }
+                        
                         self.importResult = ImportResult(
                             success: true,
                             message: message,
@@ -348,7 +437,7 @@ struct ManageView: View {
                     } else {
                         self.importResult = ImportResult(
                             success: false,
-                            message: "No events were imported. Please check the CSV format.",
+                            message: "No events were imported. Please check the CSV format matches the export format.",
                             importedCount: 0
                         )
                     }
@@ -358,9 +447,10 @@ struct ManageView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         self.isImporting = false
                     }
+                    let errorMessage = "Failed to import CSV file: \(error.localizedDescription). Please ensure the file is a valid CSV exported from Tap Tap Track."
                     self.importResult = ImportResult(
                         success: false,
-                        message: "Failed to read CSV file: \(error.localizedDescription)",
+                        message: errorMessage,
                         importedCount: 0
                     )
                 }
@@ -464,9 +554,11 @@ struct ManageView: View {
         }
     }
     
-    private func importEvents(from rows: [CSVRow]) -> (imported: Int, skipped: Int) {
+    private func importEvents(from rows: [CSVRow]) -> (imported: Int, skipped: Int, categoriesCreated: Int, presetsCreated: Int) {
         var importedCount = 0
         var skippedCount = 0
+        var categoriesCreated = 0
+        var presetsCreated = 0
         
         // Get all existing categories and presets
         let categoryDescriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)])
@@ -580,21 +672,58 @@ struct ManageView: View {
                 category = Category(name: categoryName, colorHex: "#6366F1", locationTrackingEnabled: false, order: maxOrder + 1)
                 modelContext.insert(category)
                 categoryCache[categoryKey] = category
+                categoriesCreated += 1
             }
             
+            // Detect if this looks like Foursquare data (Imported category with location data)
+            let hasLocation = !row.latitude.isEmpty && !row.longitude.isEmpty
+            let isImportedCategory = categoryName.lowercased() == "imported"
+            let isFoursquareStyle = isImportedCategory && hasLocation && !row.locationName.isEmpty
+            
             // Find or create preset
-            let presetKey = "\(eventName.lowercased()):\(categoryKey)"
             let preset: EventPreset
             
-            if let existing = presetCache[presetKey] {
-                preset = existing
+            if isFoursquareStyle {
+                // For Foursquare-style imports, reuse the "Foursquare Checkin" preset
+                let foursquarePresetKey = "foursquare checkin:imported"
+                if let existing = presetCache[foursquarePresetKey] {
+                    preset = existing
+                } else {
+                    // Check if "Foursquare Checkin" preset already exists
+                    if let existingFoursquarePreset = existingPresets.first(where: { 
+                        $0.name == "Foursquare Checkin" && $0.category?.name == "Imported" 
+                    }) {
+                        preset = existingFoursquarePreset
+                        presetCache[foursquarePresetKey] = existingFoursquarePreset
+                    } else {
+                        // Create the Foursquare preset if it doesn't exist
+                        preset = EventPreset(
+                            name: "Foursquare Checkin",
+                            iconName: "location.fill",
+                            colorHex: "#8B5CF6",
+                            category: category,
+                            locationTrackingEnabled: true
+                        )
+                        modelContext.insert(preset)
+                        presetCache[foursquarePresetKey] = preset
+                        presetsCreated += 1
+                    }
+                }
             } else {
-                // Create new preset
-                let iconName = row.icon.isEmpty ? "star.fill" : row.icon
-                let colorHex = row.color.isEmpty ? "#667eea" : row.color
-                preset = EventPreset(name: eventName, iconName: iconName, colorHex: colorHex, category: category)
-                modelContext.insert(preset)
-                presetCache[presetKey] = preset
+                // For regular CSV imports, create presets as before
+                let presetKey = "\(eventName.lowercased()):\(categoryKey)"
+                
+                if let existing = presetCache[presetKey] {
+                    preset = existing
+                } else {
+                    // Create new preset
+                    let iconName = row.icon.isEmpty ? "star.fill" : row.icon
+                    let colorHex = row.color.isEmpty ? "#667eea" : row.color
+                    preset = EventPreset(name: eventName, iconName: iconName, colorHex: colorHex, category: category)
+                    modelContext.insert(preset)
+                    presetCache[presetKey] = preset
+                    presetsCreated += 1
+                }
             }
             
             // Restore commas in notes and address (export replaces them with semicolons)
@@ -628,7 +757,7 @@ struct ManageView: View {
         // Save context
         try? modelContext.save()
         
-        return (imported: importedCount, skipped: skippedCount)
+        return (imported: importedCount, skipped: skippedCount, categoriesCreated: categoriesCreated, presetsCreated: presetsCreated)
     }
     
     private func importFoursquareCheckins(from items: [[String: Any]]) -> (imported: Int, skipped: Int) {
@@ -927,19 +1056,23 @@ struct CategoriesSection: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 20)
             } else {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(categories) { category in
-                            CategoryCard(
-                                category: category,
-                                onEdit: { onEdit(category) },
-                                onDelete: { onDelete(category) },
-                                showDragHandle: editMode == .active
-                            )
-                        }
+                List {
+                    ForEach(categories) { category in
+                        CategoryCard(
+                            category: category,
+                            onEdit: { onEdit(category) },
+                            onDelete: { onDelete(category) },
+                            showDragHandle: editMode == .active
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowSeparator(.hidden)
                     }
-                    .padding(.horizontal, 20)
+                    .onMove(perform: onMove)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.editMode, $editMode)
                 .frame(height: max(0, CGFloat(categories.count) * 72 + 20))
             }
         }
@@ -2613,6 +2746,113 @@ struct LocationTrackingConfigSection: View {
         .background(Color(hex: "#252540")!)
         .cornerRadius(16)
         .padding(.horizontal)
+    }
+}
+
+// MARK: - Document Picker Presenter (Alternative to fileImporter)
+struct DocumentPickerPresenter: UIViewControllerRepresentable {
+    @Binding var isPresented: Bool
+    let allowedContentTypes: [UTType]
+    let onDocumentPicked: (URL) -> Void
+    let onCancel: () -> Void
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: DocumentPickerPresenter
+        var hasPresented = false
+        
+        init(_ parent: DocumentPickerPresenter) {
+            self.parent = parent
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            // Immediately set isPresented to false to prevent re-presenting
+            parent.isPresented = false
+            hasPresented = false
+            
+            if let url = urls.first {
+                // Start accessing security-scoped resource before dismissing
+                let _ = url.startAccessingSecurityScopedResource()
+                
+                // Copy file to a location we can access later
+                let tempDir = FileManager.default.temporaryDirectory
+                let tempURL = tempDir.appendingPathComponent("import_\(UUID().uuidString).csv")
+                
+                do {
+                    // Remove old temp file if exists
+                    if FileManager.default.fileExists(atPath: tempURL.path) {
+                        try? FileManager.default.removeItem(at: tempURL)
+                    }
+                    
+                    // Copy file to temp location while we have access
+                    try FileManager.default.copyItem(at: url, to: tempURL)
+                    
+                    // Stop accessing security-scoped resource
+                    url.stopAccessingSecurityScopedResource()
+                    
+                    // Dismiss and use the temp file
+                    controller.dismiss(animated: true) {
+                        self.parent.onDocumentPicked(tempURL)
+                    }
+                } catch {
+                    url.stopAccessingSecurityScopedResource()
+                    controller.dismiss(animated: true) {
+                        self.parent.onCancel()
+                    }
+                }
+            } else {
+                controller.dismiss(animated: true) {
+                    self.parent.onCancel()
+                }
+            }
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            // Immediately set isPresented to false to prevent re-presenting
+            parent.isPresented = false
+            hasPresented = false
+            controller.dismiss(animated: true) {
+                self.parent.onCancel()
+            }
+        }
+    }
+    
+    func makeUIViewController(context: Context) -> UIViewController {
+        return UIViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        let coordinator = context.coordinator
+        
+        // Only present if isPresented is true and we haven't already presented
+        if isPresented && !coordinator.hasPresented {
+            // Check if picker is already presented before setting flag
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                var topController = rootViewController
+                while let presented = topController.presentedViewController {
+                    topController = presented
+                }
+                
+                // Only proceed if picker isn't already presented
+                if !(topController.presentedViewController is UIDocumentPickerViewController) {
+                    // Set flag immediately to prevent duplicate presentations
+                    coordinator.hasPresented = true
+                    
+                    // Present immediately (we're already on main thread)
+                    let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedContentTypes, asCopy: true)
+                    picker.delegate = coordinator
+                    picker.allowsMultipleSelection = false
+                    topController.present(picker, animated: true)
+                }
+            }
+        } else if !isPresented {
+            // Reset flag when isPresented becomes false
+            coordinator.hasPresented = false
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
     }
 }
 

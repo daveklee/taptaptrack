@@ -238,8 +238,15 @@ struct TrackView: View {
             // Create event immediately without location
             let event = TrackedEvent(preset: preset, notes: notes)
             modelContext.insert(event)
-            eventForConfirmation = event
-            eventCapturingLocation = event
+            
+            // Save context to ensure event is persisted before showing sheet
+            try? modelContext.save()
+            
+            // Use DispatchQueue to ensure UI update happens after context save
+            DispatchQueue.main.async {
+                self.eventForConfirmation = event
+                self.eventCapturingLocation = event
+            }
             
             // Then update with location data asynchronously
             Task {
@@ -248,7 +255,14 @@ struct TrackView: View {
         } else {
             let event = TrackedEvent(preset: preset, notes: notes)
             modelContext.insert(event)
-            eventForConfirmation = event
+            
+            // Save context to ensure event is persisted before showing sheet
+            try? modelContext.save()
+            
+            // Use DispatchQueue to ensure UI update happens after context save
+            DispatchQueue.main.async {
+                self.eventForConfirmation = event
+            }
         }
     }
     
@@ -262,8 +276,15 @@ struct TrackView: View {
             // Create event immediately without location
             let event = TrackedEvent(preset: preset)
             modelContext.insert(event)
-            eventForEdit = event
-            eventCapturingLocation = event
+            
+            // Save context to ensure event is persisted before showing sheet
+            try? modelContext.save()
+            
+            // Use DispatchQueue to ensure UI update happens after context save
+            DispatchQueue.main.async {
+                self.eventForEdit = event
+                self.eventCapturingLocation = event
+            }
             
             // Then update with location data asynchronously
             Task {
@@ -272,7 +293,14 @@ struct TrackView: View {
         } else {
             let event = TrackedEvent(preset: preset)
             modelContext.insert(event)
-            eventForEdit = event
+            
+            // Save context to ensure event is persisted before showing sheet
+            try? modelContext.save()
+            
+            // Use DispatchQueue to ensure UI update happens after context save
+            DispatchQueue.main.async {
+                self.eventForEdit = event
+            }
         }
     }
     
