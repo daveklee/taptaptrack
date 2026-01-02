@@ -134,9 +134,10 @@ All notable changes to Tap Tap Track will be documented in this file.
 - Improved edit screen with location data editing capabilities
 - Updated history view to prominently display location names for events with location data
 - Category management now includes location logging toggle
+- **Note:** Location tracking was moved to preset level in v1.4.1 for more granular control
 
 ### Technical
-- Added `locationTrackingEnabled` property to `Category` model
+- Added `locationTrackingEnabled` property to `Category` model (moved to `EventPreset` in v1.4.1)
 - Added location fields (`latitude`, `longitude`, `locationName`, `address`) to `TrackedEvent` model
 - Implemented `LocationManager` service using CoreLocation and MapKit
 - Added location permission handling (`NSLocationWhenInUseUsageDescription`)
