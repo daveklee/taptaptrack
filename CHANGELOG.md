@@ -14,15 +14,15 @@ All notable changes to Tap Tap Track will be documented in this file.
   - Beautiful, clean design following iOS best practices
 
 ### Changed
-- **Location tracking moved to preset level**: Location tracking is now configured per event preset instead of per category
-  - More granular control - enable location tracking for specific events within a category
-  - Configure location tracking in the preset creation/edit screens (similar to number input configuration)
-  - Automatic migration preserves existing location tracking settings from categories to presets
+- **Location logging moved to preset level**: Location logging is now configured per event preset instead of per category
+  - More granular control - enable location logging for specific events within a category
+  - Configure location logging in the preset creation/edit screens (similar to number input configuration)
+  - Automatic migration preserves existing location logging settings from categories to presets
   - Location indicators shown in preset list for easy identification
 - **Improved preset management UI**:
   - Category selection moved to top of edit preset view (right after name field)
   - Visual indicators in preset list showing location and number input enabled status
-  - Small location icon appears next to preset name when location tracking is enabled
+  - Small location icon appears next to preset name when location logging is enabled
   - Small number icon appears next to preset name when number input is enabled
 
 ## [1.4] - 2025-12-22
@@ -134,7 +134,7 @@ All notable changes to Tap Tap Track will be documented in this file.
 - Improved edit screen with location data editing capabilities
 - Updated history view to prominently display location names for events with location data
 - Category management now includes location logging toggle
-- **Note:** Location tracking was moved to preset level in v1.4.1 for more granular control
+- **Note:** Location logging was moved to preset level in v1.4.1 for more granular control
 
 ### Technical
 - Added `locationTrackingEnabled` property to `Category` model (moved to `EventPreset` in v1.4.1)

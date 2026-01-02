@@ -22,7 +22,7 @@ final class EventPreset {
     var numberAllowDecimals: Bool = false
     var numberRequired: Bool = false
     
-    // Location tracking configuration
+    // Location logging configuration
     var locationTrackingEnabled: Bool = false
     
     var category: Category?

@@ -298,7 +298,7 @@ struct ManageView: View {
     private func updateCategory(_ category: Category, name: String) {
         category.name = name
         // Note: locationTrackingEnabled is kept on Category for backward compatibility
-        // but is no longer used - location tracking is now at the preset level
+        // but is no longer used - location logging is now at the preset level
         hapticFeedback()
     }
     
@@ -773,7 +773,7 @@ struct ManageView: View {
             importedCategory = existing
         } else {
             let maxOrder = existingCategories.map { $0.order }.max() ?? -1
-            // Location tracking is now at preset level, not category level
+            // Location logging is now at preset level, not category level
             importedCategory = Category(name: "Imported", colorHex: "#8B5CF6", locationTrackingEnabled: false, order: maxOrder + 1)
             modelContext.insert(importedCategory)
         }
@@ -849,7 +849,7 @@ struct ManageView: View {
         if let existing = existingPresets.first(where: { $0.name == defaultPresetName && $0.category?.name == "Imported" }) {
             preset = existing
         } else {
-            // Foursquare checkins should have location tracking enabled
+            // Foursquare checkins should have location logging enabled
             preset = EventPreset(name: defaultPresetName, iconName: "location.fill", colorHex: "#8B5CF6", category: importedCategory, locationTrackingEnabled: true)
             modelContext.insert(preset)
         }
@@ -1442,7 +1442,7 @@ struct AddPresetSheet: View {
                             numberRequired: $numberRequired
                         )
                         
-                        // Location tracking configuration
+                        // Location logging configuration
                         LocationTrackingConfigSection(
                             locationTrackingEnabled: $locationTrackingEnabled,
                             locationManager: locationManager
@@ -1571,7 +1571,7 @@ struct EditPresetSheet: View {
                             numberRequired: $numberRequired
                         )
                         
-                        // Location tracking configuration
+                        // Location logging configuration
                         LocationTrackingConfigSection(
                             locationTrackingEnabled: $locationTrackingEnabled,
                             locationManager: locationManager
@@ -2708,7 +2708,7 @@ struct NumberInputConfigSection: View {
     }
 }
 
-// MARK: - Location Tracking Config Section
+// MARK: - Location Logging Config Section
 struct LocationTrackingConfigSection: View {
     @Binding var locationTrackingEnabled: Bool
     @ObservedObject var locationManager: LocationManager
@@ -2720,7 +2720,7 @@ struct LocationTrackingConfigSection: View {
                     .font(.system(size: 16))
                     .foregroundColor(.gray)
                 
-                Text("Enable Location Tracking")
+                Text("Enable Location Logging")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
                 

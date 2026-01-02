@@ -21,7 +21,7 @@ final class TrackedEvent {
     var iconName: String
     var colorHex: String?
     
-    // Location data (optional, only for presets with location tracking enabled)
+    // Location data (optional, only for presets with location logging enabled)
     var latitude: Double?
     var longitude: Double?
     var locationName: String?

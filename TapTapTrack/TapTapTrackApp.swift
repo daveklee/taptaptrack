@@ -110,7 +110,7 @@ struct TapTapTrackApp: App {
                         category.order = index
                     }
                     
-                    // Migrate location tracking from category to preset level
+                    // Migrate location logging from category to preset level
                     Self.migrateLocationTrackingFromCategoryToPreset(context: context)
                     
                     // Verify presets have new properties initialized
@@ -130,8 +130,8 @@ struct TapTapTrackApp: App {
                         let _ = category.locationTrackingEnabled
                     }
                     
-                    // Migrate location tracking from category to preset level
-                    // This migration runs for all existing data to move location tracking to preset level
+                    // Migrate location logging from category to preset level
+                    // This migration runs for all existing data to move location logging to preset level
                     Self.migrateLocationTrackingFromCategoryToPreset(context: context)
                     
                     // Verify presets have new properties initialized
@@ -304,8 +304,8 @@ struct TapTapTrackApp: App {
         }
     }
     
-    /// Migrates location tracking configuration from category level to preset level
-    /// This ensures that existing users don't lose their location tracking settings
+    /// Migrates location logging configuration from category level to preset level
+    /// This ensures that existing users don't lose their location logging settings
     private static func migrateLocationTrackingFromCategoryToPreset(context: ModelContext) {
         // Fetch all presets
         let presetDescriptor = FetchDescriptor<EventPreset>()
@@ -314,7 +314,7 @@ struct TapTapTrackApp: App {
             return
         }
         
-        print("Migrating location tracking for \(presets.count) presets")
+        print("Migrating location logging for \(presets.count) presets")
         
         // For each preset, if it doesn't have locationTrackingEnabled set yet,
         // copy the value from its category (if the category has it enabled)
@@ -335,7 +335,7 @@ struct TapTapTrackApp: App {
             // Access locationTrackingEnabled to ensure it's initialized
             let currentValue = preset.locationTrackingEnabled
             
-            // Only migrate if preset doesn't already have location tracking configured
+            // Only migrate if preset doesn't already have location logging configured
             // We check if locationTrackingEnabled is false AND the category has it enabled
             // This ensures we only migrate once and preserve any preset-level settings
             if !currentValue,
@@ -346,7 +346,7 @@ struct TapTapTrackApp: App {
             }
         }
         
-        print("Migrated location tracking for \(migratedCount) presets")
+        print("Migrated location logging for \(migratedCount) presets")
     }
     
     /// Ensures all preset properties are properly initialized with default values
