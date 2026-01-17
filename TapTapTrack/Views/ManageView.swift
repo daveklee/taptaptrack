@@ -82,6 +82,19 @@ struct ManageView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 60)
                     
+                    // Tap Presets Section
+                    PresetsSection(
+                        presets: presets,
+                        onAdd: { activeSheet = .addPreset },
+                        onEdit: { preset in
+                            activeSheet = .editPreset(preset)
+                        },
+                        onDelete: { preset in
+                            presetDeleteContext = makePresetDeleteContext(for: preset)
+                            showingPresetDeleteConfirmation = true
+                        }
+                    )
+
                     // Categories Section
                     CategoriesSection(
                         categories: editableCategories,
@@ -95,19 +108,6 @@ struct ManageView: View {
                             showingCategoryDeleteConfirmation = true
                         },
                         onMove: reorderCategories
-                    )
-                    
-                    // Event Presets Section
-                    PresetsSection(
-                        presets: presets,
-                        onAdd: { activeSheet = .addPreset },
-                        onEdit: { preset in
-                            activeSheet = .editPreset(preset)
-                        },
-                        onDelete: { preset in
-                            presetDeleteContext = makePresetDeleteContext(for: preset)
-                            showingPresetDeleteConfirmation = true
-                        }
                     )
                     
                     // About & Help Section
@@ -167,7 +167,7 @@ struct ManageView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
             case .addPreset:
-                AddPresetSheet(categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
+                AddPresetSheet { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
                     addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
                 }
                 .presentationDetents([.large])
@@ -1236,7 +1236,7 @@ struct PresetsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Event Presets")
+                Text("Tap Presets")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                 
@@ -1470,9 +1470,17 @@ struct EditCategorySheet: View {
 // MARK: - Add Preset Sheet
 struct AddPresetSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let categories: [Category]
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Category.order) private var categories: [Category]
     let onSave: (String, String, String, Category?, Bool, Double?, Double?, Bool, Bool, Bool) -> Void
     
+    private enum Step: Int, CaseIterable {
+        case presetBasics
+        case category
+        case options
+    }
+    
+    @State private var step: Step = .presetBasics
     @State private var presetName = ""
     @State private var selectedIcon = "star.fill"
     @State private var selectedColorHex = "#667eea"
@@ -1484,6 +1492,8 @@ struct AddPresetSheet: View {
     @State private var numberRequired = false
     @State private var locationTrackingEnabled = false
     @StateObject private var locationManager = LocationManager()
+    @State private var showingAddCategorySheet = false
+    @State private var showingCreateAnotherPrompt = false
     
     var body: some View {
         NavigationView {
@@ -1492,80 +1502,111 @@ struct AddPresetSheet: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        Text("New Event Preset")
+                        Text(stepTitle)
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.white)
                         
-                        // Name field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Name")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
+                        if step == .presetBasics {
+                            // Name field
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Name")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                
+                                TextField("Preset name", text: $presetName)
+                                    .textFieldStyle(DarkTextFieldStyle())
+                            }
+                            .padding(.horizontal)
                             
-                            TextField("Preset name", text: $presetName)
-                                .textFieldStyle(DarkTextFieldStyle())
-                        }
-                        .padding(.horizontal)
-                        
-                        // Icon picker
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Icon")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                                .padding(.horizontal)
+                            // Icon picker
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Icon")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal)
+                                
+                                IconPicker(selectedIcon: $selectedIcon)
+                            }
                             
-                            IconPicker(selectedIcon: $selectedIcon)
+                            // Color picker
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Color")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal)
+                                
+                                ColorPicker(selectedColorHex: $selectedColorHex)
+                            }
                         }
                         
-                        // Color picker
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Color")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                                .padding(.horizontal)
+                        if step == .category {
+                            // Category picker
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Category")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.gray)
+                                
+                                CategoryPicker(categories: categories, selectedCategory: $selectedCategory)
+                                
+                                Button("New Category") {
+                                    showingAddCategorySheet = true
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        if step == .options {
+                            // Number input configuration
+                            NumberInputConfigSection(
+                                numberEnabled: $numberEnabled,
+                                numberMin: $numberMin,
+                                numberMax: $numberMax,
+                                numberAllowDecimals: $numberAllowDecimals,
+                                numberRequired: $numberRequired
+                            )
                             
-                            ColorPicker(selectedColorHex: $selectedColorHex)
+                            // Location logging configuration
+                            LocationTrackingConfigSection(
+                                locationTrackingEnabled: $locationTrackingEnabled,
+                                locationManager: locationManager
+                            )
                         }
-                        
-                        // Category picker
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Category")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.gray)
-                            
-                            CategoryPicker(categories: categories, selectedCategory: $selectedCategory)
-                        }
-                        .padding(.horizontal)
-                        
-                        // Number input configuration
-                        NumberInputConfigSection(
-                            numberEnabled: $numberEnabled,
-                            numberMin: $numberMin,
-                            numberMax: $numberMax,
-                            numberAllowDecimals: $numberAllowDecimals,
-                            numberRequired: $numberRequired
-                        )
-                        
-                        // Location logging configuration
-                        LocationTrackingConfigSection(
-                            locationTrackingEnabled: $locationTrackingEnabled,
-                            locationManager: locationManager
-                        )
                         
                         HStack(spacing: 16) {
-                            Button("Cancel") {
-                                dismiss()
-                            }
-                            .buttonStyle(SecondaryButtonStyle())
-                            
-                            Button("Create") {
-                                if !presetName.isEmpty {
-                                    onSave(presetName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled)
+                            if step == .presetBasics {
+                                Button("Cancel") {
                                     dismiss()
                                 }
+                                .buttonStyle(SecondaryButtonStyle())
+                                
+                                Button("Next") {
+                                    step = .category
+                                }
+                                .buttonStyle(PrimaryButtonStyle())
+                                .disabled(!canAdvanceFromBasics)
+                            } else if step == .category {
+                                Button("Back") {
+                                    step = .presetBasics
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
+                                
+                                Button("Next") {
+                                    step = .options
+                                }
+                                .buttonStyle(PrimaryButtonStyle())
+                            } else {
+                                Button("Back") {
+                                    step = .category
+                                }
+                                .buttonStyle(SecondaryButtonStyle())
+                                
+                                Button("Save") {
+                                    savePreset()
+                                }
+                                .buttonStyle(PrimaryButtonStyle())
+                                .disabled(!canAdvanceFromBasics)
                             }
-                            .buttonStyle(PrimaryButtonStyle())
-                            .disabled(presetName.isEmpty)
                         }
                         .padding(.horizontal)
                         .padding(.top, 16)
@@ -1576,6 +1617,64 @@ struct AddPresetSheet: View {
             }
             .navigationBarHidden(true)
         }
+        .sheet(isPresented: $showingAddCategorySheet) {
+            AddCategorySheet { name in
+                addCategory(name: name)
+            }
+        }
+        .alert("Tap preset saved, would you like to create another one?", isPresented: $showingCreateAnotherPrompt) {
+            Button("Create Another") {
+                resetFormForNextPreset()
+            }
+            Button("Done", role: .cancel) {
+                dismiss()
+            }
+        }
+    }
+    
+    private var stepTitle: String {
+        switch step {
+        case .presetBasics:
+            return "New Tap Preset"
+        case .category:
+            return "Choose Category"
+        case .options:
+            return "Preset Options"
+        }
+    }
+    
+    private var canAdvanceFromBasics: Bool {
+        !presetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    private func savePreset() {
+        let trimmedName = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        onSave(trimmedName, selectedIcon, selectedColorHex, selectedCategory, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled)
+        showingCreateAnotherPrompt = true
+    }
+    
+    private func resetFormForNextPreset() {
+        presetName = ""
+        selectedIcon = "star.fill"
+        selectedColorHex = "#667eea"
+        selectedCategory = nil
+        numberEnabled = false
+        numberMin = nil
+        numberMax = nil
+        numberAllowDecimals = false
+        numberRequired = false
+        locationTrackingEnabled = false
+        step = .presetBasics
+    }
+    
+    private func addCategory(name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        let maxOrder = categories.map { $0.order }.max() ?? -1
+        let category = Category(name: trimmedName, locationTrackingEnabled: false, order: maxOrder + 1)
+        modelContext.insert(category)
+        selectedCategory = category
     }
 }
 
@@ -1621,7 +1720,7 @@ struct EditPresetSheet: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        Text("Edit Event Preset")
+                        Text("Edit Tap Preset")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.white)
                         

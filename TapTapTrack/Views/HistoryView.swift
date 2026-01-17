@@ -154,7 +154,7 @@ struct HistoryView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         // Header with Export button
                         HStack {
-                            Text("Event History")
+                            Text("Tap History")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
                             
