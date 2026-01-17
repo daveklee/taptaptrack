@@ -9,6 +9,7 @@ import SwiftData
 struct TrackView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.order) private var categories: [Category]
+    @Query(sort: \EventPreset.name) private var presets: [EventPreset]
     @Query(sort: \TrackedEvent.timestamp, order: .reverse) private var allEvents: [TrackedEvent]
     
     // Location manager
@@ -41,6 +42,16 @@ struct TrackView: View {
             return 0
         }
         return allEvents.filter { $0.timestamp >= weekStart }.count
+    }
+
+    private var visibleCategories: [Category] {
+        categories.filter { !$0.isHiddenCategory }
+    }
+
+    private var uncategorizedPresets: [EventPreset] {
+        presets
+            .filter { $0.category == nil }
+            .sorted { $0.name < $1.name }
     }
     
     var body: some View {
@@ -83,11 +94,12 @@ struct TrackView: View {
                             .padding(.horizontal, 20)
                         
                         // Categories with presets
-                        ForEach(categories) { category in
-                            if let presets = category.presets, !presets.isEmpty {
+                        ForEach(visibleCategories) { category in
+                            let categoryPresets = (category.presets ?? []).sorted { $0.name < $1.name }
+                            if !categoryPresets.isEmpty {
                                 CategorySection(
-                                    category: category,
-                                    presets: presets,
+                                    title: category.name,
+                                    presets: categoryPresets,
                                     onTap: { preset in
                                         trackEvent(preset: preset)
                                     },
@@ -96,6 +108,19 @@ struct TrackView: View {
                                     }
                                 )
                             }
+                        }
+
+                        if !uncategorizedPresets.isEmpty {
+                            CategorySection(
+                                title: "Uncategorized",
+                                presets: uncategorizedPresets,
+                                onTap: { preset in
+                                    trackEvent(preset: preset)
+                                },
+                                onLongPress: { preset in
+                                    trackEventAndEdit(preset: preset)
+                                }
+                            )
                         }
                     }
                     .padding(.vertical, 24)
@@ -609,7 +634,7 @@ struct UpdateTapsLink: View {
 
 // MARK: - Category Section
 struct CategorySection: View {
-    let category: Category
+    let title: String
     let presets: [EventPreset]
     let onTap: (EventPreset) -> Void
     let onLongPress: (EventPreset) -> Void
@@ -621,7 +646,7 @@ struct CategorySection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(category.name)
+            Text(title)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.gray)
                 .padding(.horizontal, 20)
@@ -630,7 +655,6 @@ struct CategorySection: View {
                 ForEach(presets) { preset in
                     EventPresetCard(
                         preset: preset,
-                        category: category,
                         onTap: {
                             onTap(preset)
                         },
@@ -649,7 +673,6 @@ struct CategorySection: View {
 // MARK: - Event Preset Card
 struct EventPresetCard: View {
     let preset: EventPreset
-    let category: Category
     let onTap: () -> Void
     let onLongPress: () -> Void
     

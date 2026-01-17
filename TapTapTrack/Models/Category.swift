@@ -31,6 +31,12 @@ final class Category {
     var color: Color {
         Color(hex: colorHex) ?? .purple
     }
+
+    static let hiddenCategoryName = "Hidden"
+
+    var isHiddenCategory: Bool {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == Self.hiddenCategoryName.lowercased()
+    }
 }
 
 // MARK: - Color Extension

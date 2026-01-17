@@ -62,6 +62,10 @@ struct ManageView: View {
     @State private var showingFoursquareImporter: Bool = false
     @State private var importResult: ImportResult?
     @State private var showingDocumentPicker: Bool = false
+
+    private var editableCategories: [Category] {
+        categories.filter { !$0.isHiddenCategory }
+    }
     
     var body: some View {
         ZStack {
@@ -80,7 +84,7 @@ struct ManageView: View {
                     
                     // Categories Section
                     CategoriesSection(
-                        categories: categories,
+                        categories: editableCategories,
                         onAdd: { activeSheet = .addCategory },
                         onEdit: { category in
                             // Store category directly - same pattern as presets
@@ -436,7 +440,7 @@ struct ManageView: View {
     }
     
     private func reorderCategories(from source: IndexSet, to destination: Int) {
-        var reorderedCategories = categories
+        var reorderedCategories = editableCategories
         
         // Move items
         reorderedCategories.move(fromOffsets: source, toOffset: destination)
@@ -444,6 +448,11 @@ struct ManageView: View {
         // Update order values
         for (index, category) in reorderedCategories.enumerated() {
             category.order = index
+        }
+
+        let nextOrder = reorderedCategories.count
+        for category in categories where category.isHiddenCategory {
+            category.order = nextOrder
         }
         
         hapticFeedback()
@@ -1190,6 +1199,9 @@ struct CategoryCard: View {
                         .font(.system(size: 16))
                         .foregroundColor(Color(hex: "#60A5FA")!)
                 }
+                .frame(width: 36, height: 36)
+                .contentShape(Rectangle())
+                .buttonStyle(.plain)
                 .padding(.trailing, 8)
             }
             
@@ -1200,6 +1212,9 @@ struct CategoryCard: View {
                         .font(.system(size: 16))
                         .foregroundColor(Color(hex: "#EF4444")!)
                 }
+                .frame(width: 36, height: 36)
+                .contentShape(Rectangle())
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)
@@ -1922,6 +1937,22 @@ struct CategoryPicker: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
+                Button {
+                    selectedCategory = nil
+                } label: {
+                    Text("Uncategorized")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(selectedCategory == nil
+                                      ? Color(hex: "#667eea")!
+                                      : Color(hex: "#2a2a4e")!)
+                        )
+                }
+
                 ForEach(categories) { category in
                     Button {
                         selectedCategory = category

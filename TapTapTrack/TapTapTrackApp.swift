@@ -146,6 +146,9 @@ struct TapTapTrackApp: App {
                         // Don't fail - data is still in memory
                     }
                 }
+
+                // Ensure the built-in Hidden category exists
+                Self.ensureHiddenCategoryExists(context: context, existingCategories: categories)
                 
                 // Final verification - count data after migration
                 let finalCategoryCount = (try? context.fetchCount(FetchDescriptor<Category>())) ?? 0
@@ -165,11 +168,13 @@ struct TapTapTrackApp: App {
                 let personal = Category(name: "Personal", colorHex: "#8B5CF6", locationTrackingEnabled: false, order: 1)
                 let health = Category(name: "Health", colorHex: "#EC4899", locationTrackingEnabled: false, order: 2)
                 let social = Category(name: "Social", colorHex: "#14B8A6", locationTrackingEnabled: false, order: 3)
+                let hidden = Category(name: Category.hiddenCategoryName, colorHex: "#64748B", locationTrackingEnabled: false, order: 4)
                 
                 context.insert(work)
                 context.insert(personal)
                 context.insert(health)
                 context.insert(social)
+                context.insert(hidden)
                 
                 // Seed event presets
                 let cityPreset = EventPreset(name: "City", iconName: "person.3.fill", category: work)
@@ -366,6 +371,26 @@ struct TapTapTrackApp: App {
             let _ = preset.numberMax
             let _ = preset.numberAllowDecimals
             let _ = preset.numberRequired
+        }
+    }
+
+    private static func ensureHiddenCategoryExists(context: ModelContext, existingCategories: [Category]) {
+        guard !existingCategories.contains(where: { $0.isHiddenCategory }) else {
+            return
+        }
+        let maxOrder = existingCategories.map { $0.order }.max() ?? -1
+        let hidden = Category(
+            name: Category.hiddenCategoryName,
+            colorHex: "#64748B",
+            locationTrackingEnabled: false,
+            order: maxOrder + 1
+        )
+        context.insert(hidden)
+        do {
+            try context.save()
+            print("Inserted built-in Hidden category")
+        } catch {
+            print("Warning: Failed to save Hidden category: \(error)")
         }
     }
 }
