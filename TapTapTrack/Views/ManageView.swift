@@ -8,24 +8,58 @@ import SwiftData
 import UniformTypeIdentifiers
 import UIKit
 
+private enum ManageSheet: Identifiable {
+    case addCategory
+    case editCategory(Category)
+    case addPreset
+    case editPreset(EventPreset)
+    case about
+    case foursquareHelp
+    
+    var id: String {
+        switch self {
+        case .addCategory:
+            return "addCategory"
+        case .editCategory(let category):
+            return "editCategory-\(category.id.uuidString)"
+        case .addPreset:
+            return "addPreset"
+        case .editPreset(let preset):
+            return "editPreset-\(preset.id.uuidString)"
+        case .about:
+            return "about"
+        case .foursquareHelp:
+            return "foursquareHelp"
+        }
+    }
+}
+
+private struct PresetDeleteContext {
+    let id: UUID
+    let name: String
+    let eventCount: Int
+}
+
+private struct CategoryDeleteContext {
+    let id: UUID
+    let name: String
+    let presetCount: Int
+    let eventCount: Int
+}
+
 struct ManageView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.order) private var categories: [Category]
     @Query(sort: \EventPreset.createdAt) private var presets: [EventPreset]
     
-    @State private var showingAddCategory = false
-    @State private var showingAddPreset = false
-    @State private var showingAbout = false
-    @State private var categoryToEdit: Category?
-    @State private var presetToEdit: EventPreset?
-    @State private var presetToDelete: EventPreset?
-    @State private var categoryToDelete: Category?
-    @State private var showingDeleteConfirmation = false
+    @State private var activeSheet: ManageSheet?
+    @State private var presetDeleteContext: PresetDeleteContext?
+    @State private var categoryDeleteContext: CategoryDeleteContext?
+    @State private var showingPresetDeleteConfirmation = false
     @State private var showingCategoryDeleteConfirmation = false
     @State private var isImporting: Bool = false
     @State private var showingFileImporter: Bool = false
     @State private var showingFoursquareImporter: Bool = false
-    @State private var showingFoursquareHelp: Bool = false
     @State private var importResult: ImportResult?
     @State private var showingDocumentPicker: Bool = false
     
@@ -47,13 +81,13 @@ struct ManageView: View {
                     // Categories Section
                     CategoriesSection(
                         categories: categories,
-                        onAdd: { showingAddCategory = true },
+                        onAdd: { activeSheet = .addCategory },
                         onEdit: { category in
                             // Store category directly - same pattern as presets
-                            categoryToEdit = category
+                            activeSheet = .editCategory(category)
                         },
                         onDelete: { category in
-                            categoryToDelete = category
+                            categoryDeleteContext = makeCategoryDeleteContext(for: category)
                             showingCategoryDeleteConfirmation = true
                         },
                         onMove: reorderCategories
@@ -62,18 +96,18 @@ struct ManageView: View {
                     // Event Presets Section
                     PresetsSection(
                         presets: presets,
-                        onAdd: { showingAddPreset = true },
+                        onAdd: { activeSheet = .addPreset },
                         onEdit: { preset in
-                            presetToEdit = preset
+                            activeSheet = .editPreset(preset)
                         },
                         onDelete: { preset in
-                            presetToDelete = preset
-                            showingDeleteConfirmation = true
+                            presetDeleteContext = makePresetDeleteContext(for: preset)
+                            showingPresetDeleteConfirmation = true
                         }
                     )
                     
                     // About & Help Section
-                    AboutSection(onTap: { showingAbout = true })
+                    AboutSection(onTap: { activeSheet = .about })
                     
                     // Import Section
                     ImportSection(
@@ -94,7 +128,7 @@ struct ManageView: View {
                                 showingFoursquareImporter = true
                             }
                         },
-                        onFoursquareHelp: { showingFoursquareHelp = true }
+                        onFoursquareHelp: { activeSheet = .foursquareHelp }
                     )
                     
                     Spacer(minLength: 100)
@@ -107,45 +141,48 @@ struct ManageView: View {
                 HStack {
                     Spacer()
                     FloatingActionButton {
-                        showingAddPreset = true
+                        activeSheet = .addPreset
                     }
                     .padding(.trailing, 20)
                     .padding(.bottom, 100)
                 }
             }
         }
-        .sheet(isPresented: $showingAddCategory) {
-            AddCategorySheet { name in
-                addCategory(name: name)
-            }
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $categoryToEdit) { category in
-            EditCategorySheet(category: category) { name in
-                updateCategory(category, name: name)
-            }
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showingAddPreset) {
-            AddPresetSheet(categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
-                addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
-            }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $presetToEdit) { preset in
-            EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
-                updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
-            }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showingAbout) {
-            AboutSheet()
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .addCategory:
+                AddCategorySheet { name in
+                    addCategory(name: name)
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            case .editCategory(let category):
+                EditCategorySheet(category: category) { name in
+                    updateCategory(category, name: name)
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            case .addPreset:
+                AddPresetSheet(categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
+                    addPreset(name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
+                }
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+            case .editPreset(let preset):
+                EditPresetSheet(preset: preset, categories: categories) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
+                    updatePreset(preset, name: name, iconName: iconName, colorHex: colorHex, category: category, numberEnabled: numberEnabled, numberMin: numberMin, numberMax: numberMax, numberAllowDecimals: numberAllowDecimals, numberRequired: numberRequired, locationTrackingEnabled: locationTrackingEnabled)
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            case .about:
+                AboutSheet()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            case .foursquareHelp:
+                FoursquareImportHelpSheet()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
         }
         .fileImporter(
             isPresented: $showingFileImporter,
@@ -190,11 +227,6 @@ struct ManageView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .sheet(isPresented: $showingFoursquareHelp) {
-            FoursquareImportHelpSheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
         .background(
             DocumentPickerPresenter(
                 isPresented: $showingDocumentPicker,
@@ -208,77 +240,52 @@ struct ManageView: View {
             )
         )
         .confirmationDialog(
-            "Delete \"\(presetToDelete?.name ?? "Preset")\"?",
-            isPresented: $showingDeleteConfirmation,
+            "Delete preset?",
+            isPresented: $showingPresetDeleteConfirmation,
             titleVisibility: .visible
         ) {
             Button("Delete Preset & All Events", role: .destructive) {
-                if let preset = presetToDelete {
-                    deletePresetAndEvents(preset)
+                if let context = presetDeleteContext {
+                    deletePresetAndEvents(id: context.id)
                 }
-                presetToDelete = nil
+                presetDeleteContext = nil
+                showingPresetDeleteConfirmation = false
             }
             
             Button("Delete Preset Only", role: .destructive) {
-                if let preset = presetToDelete {
-                    deletePresetKeepEvents(preset)
+                if let context = presetDeleteContext {
+                    deletePresetKeepEvents(id: context.id)
                 }
-                presetToDelete = nil
+                presetDeleteContext = nil
+                showingPresetDeleteConfirmation = false
             }
             
             Button("Cancel", role: .cancel) {
-                presetToDelete = nil
+                presetDeleteContext = nil
+                showingPresetDeleteConfirmation = false
             }
         } message: {
-            let eventCount = presetToDelete?.trackedEvents?.count ?? 0
-            if eventCount > 0 {
-                Text("This preset has \(eventCount) tracked event\(eventCount == 1 ? "" : "s"). You can delete everything, or keep the events and only remove the preset.")
-            } else {
-                Text("This will remove the preset. No tracked events are associated with it.")
-            }
+            presetDeleteMessage()
         }
         .confirmationDialog(
-            "Delete \"\(categoryToDelete?.name ?? "Category")\"?",
+            "Delete category?",
             isPresented: $showingCategoryDeleteConfirmation,
             titleVisibility: .visible
         ) {
             Button("Delete Category", role: .destructive) {
-                if let category = categoryToDelete {
-                    deleteCategory(category)
+                if let context = categoryDeleteContext {
+                    deleteCategory(id: context.id)
                 }
-                categoryToDelete = nil
+                categoryDeleteContext = nil
+                showingCategoryDeleteConfirmation = false
             }
             
             Button("Cancel", role: .cancel) {
-                categoryToDelete = nil
+                categoryDeleteContext = nil
+                showingCategoryDeleteConfirmation = false
             }
         } message: {
-            if let category = categoryToDelete {
-                let presetCount = category.presets?.count ?? 0
-                var eventCount = 0
-                if let presets = category.presets {
-                    for preset in presets {
-                        eventCount += preset.trackedEvents?.count ?? 0
-                    }
-                }
-                
-                if presetCount > 0 || eventCount > 0 {
-                    var parts: [String] = []
-                    if presetCount > 0 {
-                        parts.append("all \(presetCount) preset\(presetCount == 1 ? "" : "s")")
-                    }
-                    if eventCount > 0 {
-                        parts.append("all \(eventCount) tracked event\(eventCount == 1 ? "" : "s")")
-                    }
-                    
-                    let itemsList = parts.joined(separator: " and ")
-                    return Text("This will permanently delete the category \"\(category.name)\", \(itemsList), and all associated data. This action cannot be undone.")
-                } else {
-                    return Text("This will permanently delete the category \"\(category.name)\". No presets or events are associated with it.")
-                }
-            } else {
-                return Text("This will permanently delete the category and all associated data. This action cannot be undone.")
-            }
+            categoryDeleteMessage()
         }
     }
     
@@ -295,11 +302,79 @@ struct ManageView: View {
         hapticFeedback()
     }
     
+    private func deleteCategory(id: UUID) {
+        let descriptor = FetchDescriptor<Category>(predicate: #Predicate { $0.id == id })
+        if let category = try? modelContext.fetch(descriptor).first {
+            deleteCategory(category)
+        }
+    }
+    
     private func updateCategory(_ category: Category, name: String) {
         category.name = name
         // Note: locationTrackingEnabled is kept on Category for backward compatibility
         // but is no longer used - location logging is now at the preset level
         hapticFeedback()
+    }
+    
+    private func presetDeleteMessage() -> Text {
+        guard let context = presetDeleteContext else {
+            return Text("This will remove the preset.")
+        }
+        
+        let eventCount = context.eventCount
+        if eventCount > 0 {
+            return Text("\"\(context.name)\" has \(eventCount) tracked event\(eventCount == 1 ? "" : "s"). You can delete everything, or keep the events and only remove the preset.")
+        }
+        
+        return Text("This will remove \"\(context.name)\". No tracked events are associated with it.")
+    }
+    
+    private func categoryDeleteMessage() -> Text {
+        guard let context = categoryDeleteContext else {
+            return Text("This will permanently delete the category and all associated data. This action cannot be undone.")
+        }
+        
+        let presetCount = context.presetCount
+        let eventCount = context.eventCount
+        
+        if presetCount > 0 || eventCount > 0 {
+            var parts: [String] = []
+            if presetCount > 0 {
+                parts.append("all \(presetCount) preset\(presetCount == 1 ? "" : "s")")
+            }
+            if eventCount > 0 {
+                parts.append("all \(eventCount) tracked event\(eventCount == 1 ? "" : "s")")
+            }
+            
+            let itemsList = parts.joined(separator: " and ")
+            return Text("This will permanently delete the category \"\(context.name)\", \(itemsList), and all associated data. This action cannot be undone.")
+        }
+        
+        return Text("This will permanently delete the category \"\(context.name)\". No presets or events are associated with it.")
+    }
+    
+    private func makePresetDeleteContext(for preset: EventPreset) -> PresetDeleteContext {
+        PresetDeleteContext(
+            id: preset.id,
+            name: preset.name,
+            eventCount: preset.trackedEvents?.count ?? 0
+        )
+    }
+    
+    private func makeCategoryDeleteContext(for category: Category) -> CategoryDeleteContext {
+        var eventCount = 0
+        if let presets = category.presets {
+            for preset in presets {
+                eventCount += preset.trackedEvents?.count ?? 0
+            }
+        }
+        
+        return CategoryDeleteContext(
+            id: category.id,
+            name: category.name,
+            presetCount: category.presets?.count ?? 0,
+            eventCount: eventCount
+        )
     }
     
     private func addPreset(name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false, locationTrackingEnabled: Bool = false) {
@@ -333,6 +408,13 @@ struct ManageView: View {
         hapticFeedback()
     }
     
+    private func deletePresetAndEvents(id: UUID) {
+        let descriptor = FetchDescriptor<EventPreset>(predicate: #Predicate { $0.id == id })
+        if let preset = try? modelContext.fetch(descriptor).first {
+            deletePresetAndEvents(preset)
+        }
+    }
+    
     private func deletePresetKeepEvents(_ preset: EventPreset) {
         // Unlink all tracked events from this preset before deleting
         // The events will retain their denormalized data (eventName, categoryName, iconName)
@@ -344,6 +426,13 @@ struct ManageView: View {
         // Now delete the preset without cascading to events
         modelContext.delete(preset)
         hapticFeedback()
+    }
+    
+    private func deletePresetKeepEvents(id: UUID) {
+        let descriptor = FetchDescriptor<EventPreset>(predicate: #Predicate { $0.id == id })
+        if let preset = try? modelContext.fetch(descriptor).first {
+            deletePresetKeepEvents(preset)
+        }
     }
     
     private func reorderCategories(from source: IndexSet, to destination: Int) {
