@@ -141,7 +141,12 @@ struct HistoryView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // Stats Header
-                    StatsHeader(eventsToday: eventsToday, eventsThisWeek: eventsThisWeek)
+                    StatsHeader(
+                        eventsToday: eventsToday,
+                        eventsThisWeek: eventsThisWeek,
+                        onTodayTap: {},
+                        onWeekTap: {}
+                    )
                         .padding(.top, 60)
                         .padding(.bottom, 24)
                     

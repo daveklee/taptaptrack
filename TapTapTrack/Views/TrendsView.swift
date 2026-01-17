@@ -27,6 +27,27 @@ struct TrendsView: View {
         case year = "1Y"
         case all = "All"
         
+        init?(identifier: String) {
+            switch identifier {
+            case "day":
+                self = .day
+            case "week":
+                self = .week
+            case "month":
+                self = .month
+            case "threeMonths":
+                self = .threeMonths
+            case "sixMonths":
+                self = .sixMonths
+            case "year":
+                self = .year
+            case "all":
+                self = .all
+            default:
+                return nil
+            }
+        }
+        
         var dateRange: (start: Date, end: Date) {
             let calendar = Calendar.current
             let now = Date()
@@ -254,6 +275,20 @@ struct TrendsView: View {
                 }
             }
         }
+        .onAppear {
+            applyPendingTimeRange()
+        }
+    }
+    
+    private func applyPendingTimeRange() {
+        guard let identifier = UserDefaults.standard.string(forKey: "pendingTrendsTimeRange"),
+              let range = TimeRange(identifier: identifier) else {
+            return
+        }
+        withAnimation(.spring(response: 0.3)) {
+            selectedTimeRange = range
+        }
+        UserDefaults.standard.removeObject(forKey: "pendingTrendsTimeRange")
     }
 }
 

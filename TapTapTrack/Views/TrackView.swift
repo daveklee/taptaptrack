@@ -64,7 +64,12 @@ struct TrackView: View {
                     .padding(.bottom, 16)
                     
                     // Stats Header
-                    StatsHeader(eventsToday: eventsToday, eventsThisWeek: eventsThisWeek)
+                    StatsHeader(
+                        eventsToday: eventsToday,
+                        eventsThisWeek: eventsThisWeek,
+                        onTodayTap: switchToHistoryTab,
+                        onWeekTap: switchToTrendsWeek
+                    )
                         .padding(.bottom, 24)
                     
                     // Track Event Section
@@ -437,52 +442,85 @@ struct TrackView: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
     }
+    
+    private func switchToHistoryTab() {
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SwitchToHistoryTab"),
+            object: nil
+        )
+    }
+    
+    private func switchToTrendsWeek() {
+        UserDefaults.standard.set("week", forKey: "pendingTrendsTimeRange")
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SwitchToTrendsTab"),
+            object: nil
+        )
+    }
 }
 
 // MARK: - Stats Header
 struct StatsHeader: View {
     let eventsToday: Int
     let eventsThisWeek: Int
+    let onTodayTap: () -> Void
+    let onWeekTap: () -> Void
     
     var body: some View {
         VStack(spacing: 24) {
             // Circular Progress
-            ZStack {
-                // Background circle
-                Circle()
-                    .stroke(Color.white.opacity(0.2), lineWidth: 12)
-                    .frame(width: 180, height: 180)
-                
-                // Progress arc
-                Circle()
-                    .trim(from: 0, to: min(CGFloat(eventsToday) / 10.0, 1.0))
-                    .stroke(
-                        LinearGradient(
-                            colors: [.white, .white.opacity(0.6)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                    )
-                    .frame(width: 180, height: 180)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.6), value: eventsToday)
-                
-                // Center text
-                VStack(spacing: 4) {
-                    Text("\(eventsToday)")
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.white)
-                    Text("Events Today")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.8))
+            Button(action: onTodayTap) {
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .stroke(Color.white.opacity(0.2), lineWidth: 12)
+                        .frame(width: 180, height: 180)
+                    
+                    // Progress arc
+                    Circle()
+                        .trim(from: 0, to: min(CGFloat(eventsToday) / 10.0, 1.0))
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white, .white.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                        )
+                        .frame(width: 180, height: 180)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(response: 0.6), value: eventsToday)
+                    
+                    // Center text
+                    VStack(spacing: 4) {
+                        Text("\(eventsToday)")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Events Today")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
                 }
+                .contentShape(Circle())
             }
+            .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel("View event history")
             
             // Stats Row
             HStack(spacing: 48) {
-                StatItem(icon: "calendar", value: eventsToday, label: "Today")
-                StatItem(icon: "chart.bar.fill", value: eventsThisWeek, label: "This Week")
+                Button(action: onTodayTap) {
+                    StatItem(icon: "calendar", value: eventsToday, label: "Today")
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("View today's event history")
+                
+                Button(action: onWeekTap) {
+                    StatItem(icon: "chart.bar.fill", value: eventsThisWeek, label: "This Week")
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel("View trends for last week")
             }
         }
     }
