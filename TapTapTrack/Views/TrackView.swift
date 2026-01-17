@@ -19,6 +19,7 @@ struct TrackView: View {
     @State private var eventForConfirmation: TrackedEvent?
     @State private var eventForQuickNote: TrackedEvent?
     @State private var eventForEdit: TrackedEvent?
+    @State private var presetForEdit: EventPreset?
     @State private var isCapturingLocation = false
     @State private var eventCapturingLocation: TrackedEvent?
     
@@ -104,7 +105,7 @@ struct TrackView: View {
                                         trackEvent(preset: preset)
                                     },
                                     onLongPress: { preset in
-                                        trackEventAndEdit(preset: preset)
+                                        editPreset(preset: preset)
                                     }
                                 )
                             }
@@ -118,7 +119,7 @@ struct TrackView: View {
                                     trackEvent(preset: preset)
                                 },
                                 onLongPress: { preset in
-                                    trackEventAndEdit(preset: preset)
+                                    editPreset(preset: preset)
                                 }
                             )
                         }
@@ -178,6 +179,28 @@ struct TrackView: View {
                     deleteEvent(event)
                 }
             )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $presetForEdit) { preset in
+            EditPresetSheet(
+                preset: preset,
+                categories: categories
+            ) { name, iconName, colorHex, category, numberEnabled, numberMin, numberMax, numberAllowDecimals, numberRequired, locationTrackingEnabled in
+                updatePreset(
+                    preset,
+                    name: name,
+                    iconName: iconName,
+                    colorHex: colorHex,
+                    category: category,
+                    numberEnabled: numberEnabled,
+                    numberMin: numberMin,
+                    numberMax: numberMax,
+                    numberAllowDecimals: numberAllowDecimals,
+                    numberRequired: numberRequired,
+                    locationTrackingEnabled: locationTrackingEnabled
+                )
+            }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
@@ -335,6 +358,25 @@ struct TrackView: View {
                 self.eventForEdit = event
             }
         }
+    }
+
+    private func editPreset(preset: EventPreset) {
+        hapticFeedback()
+        presetForEdit = preset
+    }
+
+    private func updatePreset(_ preset: EventPreset, name: String, iconName: String, colorHex: String, category: Category?, numberEnabled: Bool = false, numberMin: Double? = nil, numberMax: Double? = nil, numberAllowDecimals: Bool = false, numberRequired: Bool = false, locationTrackingEnabled: Bool = false) {
+        preset.name = name
+        preset.iconName = iconName
+        preset.colorHex = colorHex
+        preset.category = category
+        preset.numberEnabled = numberEnabled
+        preset.numberMin = numberMin
+        preset.numberMax = numberMax
+        preset.numberAllowDecimals = numberAllowDecimals
+        preset.numberRequired = numberRequired
+        preset.locationTrackingEnabled = locationTrackingEnabled
+        hapticFeedback()
     }
     
     private func updateEventWithLocation(event: TrackedEvent, preset: EventPreset) async {
