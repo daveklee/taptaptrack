@@ -84,15 +84,35 @@ struct TrackView: View {
                     )
                         .padding(.bottom, 16)
                     
-                    UpdateTapsLink(onTap: switchToManageTab)
-                        .padding(.bottom, 24)
-                    
                     // Track Event Section
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Track Event")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
+                        HStack {
+                            Text("Track Event")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Button(action: switchToManageTab) {
+                                Label("Configure Taps", systemImage: "slider.horizontal.3")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.white.opacity(0.12))
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                            )
+                                    )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .accessibilityLabel("Update my taps")
+                            .accessibilityHint("Opens manage page")
+                        }
+                        .padding(.horizontal, 20)
                         
                         // Categories with presets
                         ForEach(visibleCategories) { category in
