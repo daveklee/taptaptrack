@@ -55,6 +55,9 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToTrendsTab"))) { _ in
             selectedTab = .trends
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToManageTab"))) { _ in
+            selectedTab = .manage
+        }
     }
 }
 

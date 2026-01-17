@@ -70,6 +70,9 @@ struct TrackView: View {
                         onTodayTap: switchToHistoryTab,
                         onWeekTap: switchToTrendsWeek
                     )
+                        .padding(.bottom, 16)
+                    
+                    UpdateTapsLink(onTap: switchToManageTab)
                         .padding(.bottom, 24)
                     
                     // Track Event Section
@@ -457,6 +460,13 @@ struct TrackView: View {
             object: nil
         )
     }
+    
+    private func switchToManageTab() {
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SwitchToManageTab"),
+            object: nil
+        )
+    }
 }
 
 // MARK: - Stats Header
@@ -545,6 +555,55 @@ struct StatItem: View {
                 .font(.system(size: 14))
                 .foregroundColor(.white.opacity(0.7))
         }
+    }
+}
+
+// MARK: - Update Taps Link
+struct UpdateTapsLink: View {
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#60A5FA")!.opacity(0.2))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "#60A5FA")!)
+                }
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Update my taps")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                    Text("Add or remove categories and presets")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(hex: "#1a1a2e")!.opacity(0.9))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal, 20)
+        .accessibilityLabel("Update my taps")
+        .accessibilityHint("Opens manage page")
     }
 }
 
