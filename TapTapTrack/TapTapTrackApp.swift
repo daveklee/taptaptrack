@@ -176,19 +176,6 @@ struct TapTapTrackApp: App {
                 context.insert(social)
                 context.insert(hidden)
                 
-                // Seed event presets
-                let cityPreset = EventPreset(name: "City", iconName: "person.3.fill", category: work)
-                let exercisePreset = EventPreset(name: "Exercise", iconName: "figure.strengthtraining.traditional", category: health)
-                let coffeePreset = EventPreset(name: "Coffee Break", iconName: "cup.and.saucer.fill", category: personal)
-                let eventPreset = EventPreset(name: "Event", iconName: "phone.fill", category: work)
-                let sleepPreset = EventPreset(name: "Sleep", iconName: "bed.double.fill", category: health)
-                
-                context.insert(cityPreset)
-                context.insert(exercisePreset)
-                context.insert(coffeePreset)
-                context.insert(eventPreset)
-                context.insert(sleepPreset)
-                
                 try? context.save()
             }
             

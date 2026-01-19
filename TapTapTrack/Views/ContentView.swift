@@ -4,11 +4,15 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .track
     @Binding var pendingEventID: UUID?
     @State private var shouldSwitchToTrack = false
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @AppStorage("onboardingRequested") private var onboardingRequested = false
+    @Query private var allEvents: [TrackedEvent]
     
     enum Tab {
         case track, history, trends, manage
@@ -58,6 +62,21 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToManageTab"))) { _ in
             selectedTab = .manage
         }
+        .fullScreenCover(isPresented: Binding(
+            get: { shouldShowOnboarding },
+            set: { newValue in
+                if !newValue {
+                    hasSeenOnboarding = true
+                    onboardingRequested = false
+                }
+            }
+        )) {
+            OnboardingFlowView(hasSeenOnboarding: $hasSeenOnboarding)
+        }
+    }
+
+    private var shouldShowOnboarding: Bool {
+        onboardingRequested || (!hasSeenOnboarding && allEvents.count <= 5)
     }
 }
 

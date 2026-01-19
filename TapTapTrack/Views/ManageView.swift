@@ -51,6 +51,8 @@ struct ManageView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.order) private var categories: [Category]
     @Query(sort: \EventPreset.createdAt) private var presets: [EventPreset]
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @AppStorage("onboardingRequested") private var onboardingRequested = false
     
     @State private var activeSheet: ManageSheet?
     @State private var presetDeleteContext: PresetDeleteContext?
@@ -112,6 +114,12 @@ struct ManageView: View {
                     
                     // About & Help Section
                     AboutSection(onTap: { activeSheet = .about })
+
+                    OnboardingSection(onRestart: {
+                        hapticFeedback()
+                        onboardingRequested = true
+                        hasSeenOnboarding = true
+                    })
                     
                     // Import Section
                     ImportSection(
@@ -2126,6 +2134,63 @@ struct AboutSection: View {
                     
                     Spacer()
                     
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.gray)
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(hex: "#252540")!)
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - Onboarding Section
+struct OnboardingSection: View {
+    let onRestart: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Onboarding")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+
+            Button(action: onRestart) {
+                HStack(spacing: 16) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color(hex: "#60A5FA")!, Color(hex: "#4F46E5")!],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 44, height: 44)
+
+                        Image(systemName: "arrow.counterclockwise.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Repeat onboarding process")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+
+                        Text("Rerun the setup wizard")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+
+                    Spacer()
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.gray)
