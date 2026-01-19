@@ -8,6 +8,7 @@ import SwiftData
 
 struct OnboardingFlowView: View {
     @Binding var hasSeenOnboarding: Bool
+    @Binding var onboardingRequested: Bool
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.order) private var categories: [Category]
     @Query(sort: \EventPreset.createdAt) private var presets: [EventPreset]
@@ -26,8 +27,9 @@ struct OnboardingFlowView: View {
     @State private var didAddSuggestedPresets = false
     @State private var showingAddPresetSheet = false
 
-    init(hasSeenOnboarding: Binding<Bool>) {
+    init(hasSeenOnboarding: Binding<Bool>, onboardingRequested: Binding<Bool>) {
         _hasSeenOnboarding = hasSeenOnboarding
+        _onboardingRequested = onboardingRequested
         _selectedSuggestions = State(
             initialValue: Set(Self.suggestedPresets.filter { $0.isRecommended }.map(\.id))
         )
@@ -158,6 +160,7 @@ struct OnboardingFlowView: View {
 
     private func finishOnboarding() {
         hasSeenOnboarding = true
+        onboardingRequested = false
     }
 
     private var welcomeStep: some View {

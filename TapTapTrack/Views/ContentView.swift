@@ -71,7 +71,10 @@ struct ContentView: View {
                 }
             }
         )) {
-            OnboardingFlowView(hasSeenOnboarding: $hasSeenOnboarding)
+            OnboardingFlowView(
+                hasSeenOnboarding: $hasSeenOnboarding,
+                onboardingRequested: $onboardingRequested
+            )
         }
     }
 
