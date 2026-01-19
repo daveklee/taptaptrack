@@ -2,6 +2,20 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.5] - 2026-01-18
+
+### Added
+- **Guided onboarding**: A multi-step onboarding flow to help you set up your first taps, categories, and presets quickly
+- **Tap shortcuts**: A "Configure Taps" button on the home screen for faster access to Manage
+- **Quick preset editing**: Long-press any tap button to jump straight to preset editing
+- **Better organization**: New "Uncategorized" section and support for a Hidden category to keep the home screen clean
+
+### Changed
+- **Language refresh**: Updated in-app copy to emphasize "taps" and quick logging
+
+### Fixed
+- Category view polish and bug fixes
+
 ## [1.4.1] - 2026-01-01
 
 ### Added

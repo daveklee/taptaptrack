@@ -2279,7 +2279,7 @@ struct AboutSheet: View {
                             HowToItem(
                                 icon: "location.fill",
                                 title: "Location Logging",
-                                description: "Enable location logging for categories to automatically capture GPS coordinates and nearby business names when tracking events."
+                            description: "Enable location logging for tap presets to automatically capture GPS coordinates and nearby business names when tracking events."
                             )
                             
                             HowToItem(
@@ -2318,7 +2318,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.4.1")
+                        Text("Version 1.5")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)

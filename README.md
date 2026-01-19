@@ -12,17 +12,19 @@ This is a simple iOS app for tracking life events with just one tap. Use it, mod
 
 ## What It Does
 
-- Track events with one tap
-- Organize events into custom categories
-- Choose from 200+ icons for your event presets
+- Track moments with one tap
+- Organize taps into custom categories
+- Choose from 200+ icons for your tap presets
+- **Guided onboarding (v1.5)**: Set up your first taps with recommended presets, categories, and quick setup tips
+- **Tap shortcuts (v1.5)**: Jump to Manage from the home screen and long-press any tap to edit it fast
 - **Custom colors (v1.2)**: Pick from 16 curated colors for each event preset. Colors make your events instantly recognizable throughout the app.
 - **Charts & trends (v1.2)**: Visualize your tracking patterns with beautiful charts and trend analysis. See daily and weekly statistics, spot patterns over time.
-- **Optional location logging (v1.2, updated v1.4.1)**: Enable location logging per event preset (disabled by default) to automatically capture GPS coordinates and nearby business names. If enabled, only anonymous coordinates are sent to Apple's servers to fetch business names. Your tracked events and personal data remain private and stored locally.
+- **Optional location logging (v1.2, updated v1.4.1)**: Enable location logging per tap preset (disabled by default) to automatically capture GPS coordinates and nearby business names. If enabled, only anonymous coordinates are sent to Apple's servers to fetch business names. Your tracked events and personal data remain private and stored locally.
 - **Foursquare import (v1.3)**: Import your Foursquare (Swarm) checkin history with all location data preserved
 - **Enhanced search (v1.3)**: Powerful search and date range filtering for large event datasets
 - **Performance optimized (v1.3)**: Handles thousands of events smoothly with lazy loading and optimized filtering
-- **Number input (v1.4)**: Add numeric values to events with optional slider and direct input. Configure min/max ranges or allow any number. Support for whole numbers or decimals.
-- **iOS Widgets (v1.4.1)**: Track events directly from your home screen with small and medium widgets. Customize which events appear in your widget.
+- **Number input (v1.4)**: Add numeric values to taps with optional slider and direct input. Configure min/max ranges or allow any number. Support for whole numbers or decimals.
+- **iOS Widgets (v1.4.1)**: Track taps directly from your home screen with small and medium widgets. Customize which taps appear in your widget.
 - View your history and export to CSV
 
 ## Installation
