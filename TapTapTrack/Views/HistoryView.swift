@@ -46,12 +46,10 @@ struct HistoryView: View {
         }
         
         // Apply keyword search filter if set
-        if !debouncedSearchText.isEmpty {
-            let searchLower = debouncedSearchText.lowercased()
+        let searchLower = debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !searchLower.isEmpty {
             filtered = filtered.lazy.filter { event in
-                event.eventName.lowercased().contains(searchLower) ||
-                event.categoryName.lowercased().contains(searchLower) ||
-                (event.notes?.lowercased().contains(searchLower) ?? false)
+                eventMatchesSearch(event, searchLower: searchLower)
             }
         }
         
@@ -60,6 +58,31 @@ struct HistoryView: View {
     
     private var hasActiveFilters: Bool {
         !debouncedSearchText.isEmpty || startDate != nil || endDate != nil
+    }
+
+    private func eventMatchesSearch(_ event: TrackedEvent, searchLower: String) -> Bool {
+        if event.eventName.lowercased().contains(searchLower) {
+            return true
+        }
+        if event.categoryName.lowercased().contains(searchLower) {
+            return true
+        }
+        if let notes = event.notes?.lowercased(), notes.contains(searchLower) {
+            return true
+        }
+        if let locationName = event.locationName?.lowercased(), locationName.contains(searchLower) {
+            return true
+        }
+        if let address = event.address?.lowercased(), address.contains(searchLower) {
+            return true
+        }
+        if let latitude = event.latitude, let longitude = event.longitude {
+            let coordinateText = "\(latitude), \(longitude)"
+            if coordinateText.lowercased().contains(searchLower) {
+                return true
+            }
+        }
+        return false
     }
     
     // Helper computed properties for DatePicker bindings to simplify type checking
@@ -199,7 +222,7 @@ struct HistoryView: View {
                                 .foregroundColor(.gray)
                                 .padding(.leading, 16)
                             
-                            TextField("Search events, categories, or notes...", text: $searchText)
+                            TextField("Search events, categories, notes, or locations...", text: $searchText)
                                 .textFieldStyle(PlainTextFieldStyle())
                                 .foregroundColor(.white)
                                 .padding(.vertical, 12)
