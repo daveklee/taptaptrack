@@ -1,6 +1,6 @@
 # iOS Shortcuts Setup Guide
 
-_Last updated for version 1.5.1_
+_Last updated for version 1.5.2_
 
 TapTapTrack supports iOS Shortcuts, allowing you to quickly track events from your home screen or Siri without opening the app first. The app will open automatically to show the confirmation screen where you can verify location, add notes, or make other updates.
 
@@ -9,7 +9,7 @@ TapTapTrack supports iOS Shortcuts, allowing you to quickly track events from yo
 When you run a Shortcut that tracks an event:
 1. The event is created immediately
 2. The app opens automatically
-3. The confirmation screen appears (just like when using the widget)
+3. The confirmation screen appears
 4. You can verify location, add notes, or make any updates before confirming
 
 ## Setting Up a Shortcut
@@ -64,8 +64,8 @@ Now you can say "Hey Siri, [your phrase]" to track events!
 - **Restart your device** - this can help sync App Intents with Shortcuts
 - **Clean and rebuild**: Product → Clean Build Folder, then rebuild
 - Make sure you're running iOS 17.0 or later
-- Check that the App Group is properly configured in both the app and widget extension targets
-- In Xcode, make sure `TrackEventIntent.swift` is included in the main app target (TapTapTrack), not just the widget extension
+- Check that the App Group is properly configured in the app target
+- In Xcode, make sure `TrackEventIntent.swift` is included in the main app target (TapTapTrack)
 - **If the error persists**: The App Intent might be crashing when accessing SwiftData. Try:
   1. Open the app first and create at least one event preset
   2. Then try creating the shortcut again
@@ -96,5 +96,5 @@ The shortcut uses App Intents to communicate with TapTapTrack. When you run a sh
 3. The app detects the pending preset ID and creates the event
 4. The confirmation screen appears automatically
 
-This is the same mechanism used by the widget, ensuring consistent behavior across all entry points.
+This uses App Intents to pass the preset to the app for reliable tracking.
 

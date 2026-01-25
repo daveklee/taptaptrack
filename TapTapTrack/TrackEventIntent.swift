@@ -2,7 +2,7 @@
 //  TrackEventIntent.swift
 //  Tap Tap Track
 //
-//  App Intent for tracking events from Shortcuts and widgets
+//  App Intent for tracking events from Shortcuts
 
 import AppIntents
 import SwiftData
@@ -41,7 +41,7 @@ struct TrackEventIntent: AppIntent {
         }
         
         // Store the preset ID in UserDefaults for the app to retrieve
-        // This approach works reliably from both Shortcuts and widgets
+        // This approach works reliably for Shortcuts
         guard let userDefaults = UserDefaults(suiteName: "group.com.taptaptrack") else {
             print("TrackEventIntent: Failed to access App Group UserDefaults")
             throw IntentError.saveFailed

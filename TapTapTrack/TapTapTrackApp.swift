@@ -8,12 +8,9 @@
 
 import SwiftUI
 import SwiftData
-import AppIntents
 
 @main
 struct TapTapTrackApp: App {
-    @State private var pendingEventID: UUID?
-    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Category.self,
@@ -213,87 +210,9 @@ struct TapTapTrackApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(pendingEventID: $pendingEventID)
-                .onOpenURL { url in
-                    handleDeepLink(url: url)
-                }
-                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
-                    if let url = userActivity.webpageURL {
-                        handleDeepLink(url: url)
-                    }
-                }
-                .onAppear {
-                    // Check for pending event from widget
-                    let userDefaults = UserDefaults(suiteName: "group.com.taptaptrack")
-                    userDefaults?.synchronize() // Ensure we have latest data
-                    
-                    if let eventIDString = userDefaults?.string(forKey: "pendingEventID"),
-                       let eventID = UUID(uuidString: eventIDString) {
-                        pendingEventID = eventID
-                        // Clear the stored ID
-                        userDefaults?.removeObject(forKey: "pendingEventID")
-                        userDefaults?.synchronize()
-                    }
-                    
-                    // Also check for pending preset ID immediately
-                    checkForPendingPresetID()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                    // Check again when app becomes active (handles cold start)
-                    checkForPendingPresetID()
-                }
+            ContentView()
         }
         .modelContainer(sharedModelContainer)
-    }
-    
-    private func handleDeepLink(url: URL) {
-        // Handle deep link from widget
-        // Format: taptaptrack://track/{presetID}
-        if url.scheme == "taptaptrack" && url.host == "track" {
-            let pathComponents = url.pathComponents.filter { $0 != "/" }
-            if let presetIDString = pathComponents.first,
-               let presetID = UUID(uuidString: presetIDString) {
-                // Store preset ID - TrackView will handle creating the event
-                let userDefaults = UserDefaults(suiteName: "group.com.taptaptrack")
-                userDefaults?.set(presetID.uuidString, forKey: "pendingPresetID")
-                userDefaults?.synchronize()
-                
-                // Post notification to switch to Track tab
-                NotificationCenter.default.post(name: NSNotification.Name("SwitchToTrackTab"), object: nil)
-                
-                // Also trigger immediate check
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    checkForPendingPresetID()
-                }
-            }
-        }
-    }
-    
-    private func checkForPendingPresetID() {
-        let userDefaults = UserDefaults(suiteName: "group.com.taptaptrack")
-        userDefaults?.synchronize()
-        
-        if let presetIDString = userDefaults?.string(forKey: "pendingPresetID"),
-           let presetID = UUID(uuidString: presetIDString) {
-            // Create the event immediately using the shared model container
-            let context = sharedModelContainer.mainContext
-            let descriptor = FetchDescriptor<EventPreset>(
-                predicate: #Predicate<EventPreset> { $0.id == presetID }
-            )
-            
-            if let preset = try? context.fetch(descriptor).first {
-                let event = TrackedEvent(preset: preset)
-                context.insert(event)
-                try? context.save()
-                
-                // Set the pending event ID to show confirmation
-                pendingEventID = event.id
-                
-                // Clear the stored preset ID
-                userDefaults?.removeObject(forKey: "pendingPresetID")
-                userDefaults?.synchronize()
-            }
-        }
     }
     
     /// Migrates location logging configuration from category level to preset level

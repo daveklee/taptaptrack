@@ -2318,7 +2318,7 @@ struct AboutSheet: View {
                         .padding(.horizontal, 20)
                         
                         // Version
-                        Text("Version 1.5")
+                        Text("Version 1.5.2")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
                             .padding(.top, 8)

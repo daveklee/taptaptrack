@@ -2,6 +2,12 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.5.2] - 2026-01-25
+
+### Changed
+- **Widgets temporarily removed**: Widget extension and widget-related flows are disabled while stability issues are investigated
+- **Shortcuts remain supported**: Tracking via iOS Shortcuts continues to work normally
+
 ## [1.5.1] - 2026-01-25
 
 ### Added
@@ -26,15 +32,6 @@ All notable changes to Tap Tap Track will be documented in this file.
 - Category view polish and bug fixes
 
 ## [1.4.1] - 2026-01-01
-
-### Added
-- **iOS Widgets**: Quick access to your most-used event presets right from your home screen
-  - Small widget (2x2 grid) for quick tracking of up to 4 events
-  - Medium widget (3x2 grid) for tracking up to 6 events
-  - Customizable widget configuration - choose which events appear in your widget
-  - Dark, semi-transparent background that adapts to your wallpaper
-  - One-tap tracking directly from the widget without opening the app
-  - Beautiful, clean design following iOS best practices
 
 ### Changed
 - **Location logging moved to preset level**: Location logging is now configured per event preset instead of per category

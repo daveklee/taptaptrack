@@ -8,8 +8,6 @@ import SwiftData
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .track
-    @Binding var pendingEventID: UUID?
-    @State private var shouldSwitchToTrack = false
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("onboardingRequested") private var onboardingRequested = false
     @Query private var allEvents: [TrackedEvent]
@@ -24,7 +22,7 @@ struct ContentView: View {
             Group {
                 switch selectedTab {
                 case .track:
-                    TrackView(pendingEventID: $pendingEventID)
+                    TrackView()
                 case .history:
                     HistoryView()
                 case .trends:
@@ -38,21 +36,6 @@ struct ContentView: View {
             CustomTabBar(selectedTab: $selectedTab)
         }
         .ignoresSafeArea(.keyboard)
-        .onAppear {
-            // Switch to Track tab if we have a pending event or preset ID
-            if shouldSwitchToTrack || pendingEventID != nil {
-                selectedTab = .track
-                shouldSwitchToTrack = false
-            }
-        }
-        .onChange(of: pendingEventID) { oldValue, newValue in
-            if newValue != nil {
-                selectedTab = .track
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToTrackTab"))) { _ in
-            selectedTab = .track
-        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToHistoryTab"))) { _ in
             selectedTab = .history
         }
@@ -181,6 +164,6 @@ struct TabBarButton: View {
 }
 
 #Preview {
-    ContentView(pendingEventID: .constant(nil))
+    ContentView()
 }
 
