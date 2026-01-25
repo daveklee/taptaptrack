@@ -633,6 +633,7 @@ struct TrackConfirmationSheet: View {
     @State private var currentIsCapturingLocation: Bool
     @State private var locationMonitoringTask: Task<Void, Never>?
     @State private var numberValue: Double?
+    @State private var showLocationTimeoutAlert = false
     
     init(event: TrackedEvent, isCapturingLocation: Bool, onAddNote: @escaping () -> Void, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.event = event
@@ -679,6 +680,10 @@ struct TrackConfirmationSheet: View {
     
     var shouldShowLocationLoading: Bool {
         currentIsCapturingLocation && !hasLocation
+    }
+
+    var needsLocation: Bool {
+        preset?.locationTrackingEnabled ?? false
     }
     
     var body: some View {
@@ -741,10 +746,7 @@ struct TrackConfirmationSheet: View {
                         .padding(.horizontal)
                         .onChange(of: numberValue) { oldValue, newValue in
                             event.numberValue = newValue
-                            // If number was required and now entered, start countdown
-                            if numberRequired && newValue != nil {
-                                startCountdown()
-                            }
+                            startCountdownIfReady()
                         }
                     }
                 
@@ -810,6 +812,11 @@ struct TrackConfirmationSheet: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .alert("We're having trouble locating you.", isPresented: $showLocationTimeoutAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("You can try again later or manually search for a location. This tap has been saved for now.")
+        }
         .onAppear {
             // Trigger animation
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -834,6 +841,7 @@ struct TrackConfirmationSheet: View {
                 // Add a timeout to prevent infinite loops (max 30 seconds)
                 let maxAttempts = 150 // 30 seconds / 0.2 seconds
                 var attempts = 0
+                var didTimeout = false
                 
                 while currentIsCapturingLocation && !hasLocation && attempts < maxAttempts {
                     // Check for cancellation
@@ -852,6 +860,7 @@ struct TrackConfirmationSheet: View {
                             if nearbyBusinesses.isEmpty {
                                 searchNearbyBusinesses()
                             }
+                            startCountdownIfReady()
                         }
                         break
                     }
@@ -860,13 +869,21 @@ struct TrackConfirmationSheet: View {
                 // If we exit the loop without location, stop monitoring
                 await MainActor.run {
                     currentIsCapturingLocation = false
+                    if !hasLocation && attempts >= maxAttempts {
+                        didTimeout = true
+                    }
+                }
+
+                if didTimeout {
+                    await MainActor.run {
+                        showLocationTimeoutAlert = true
+                        startCountdownIfReady()
+                    }
                 }
             }
             
             // Start countdown only if number is not required or number is already entered
-            if isNumberValid {
-                startCountdown()
-            }
+            startCountdownIfReady()
         }
         .onDisappear {
             cancelAutoDismiss()
@@ -899,6 +916,20 @@ struct TrackConfirmationSheet: View {
         }
         autoDismissTask = task
         DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: task)
+    }
+
+    private func startCountdownIfReady() {
+        if needsLocation && !hasLocation && currentIsCapturingLocation {
+            return
+        }
+        
+        guard isNumberValid else {
+            return
+        }
+        
+        if countdownTimer == nil && autoDismissTask == nil {
+            startCountdown()
+        }
     }
     
     private var successAnimationView: some View {

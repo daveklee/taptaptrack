@@ -2,6 +2,15 @@
 
 All notable changes to Tap Tap Track will be documented in this file.
 
+## [1.5.1] - 2026-01-25
+
+### Added
+- **Preset badges**: Location and number-input icons on tap squares for quick scanning
+
+### Changed
+- **Smarter location confirmation**: The confirmation sheet stays open while location is being found (up to 30 seconds), then auto-dismisses after the usual 5-second countdown
+- **Location timeout alert**: If location can't be found, an alert explains the tap is saved and suggests trying later or searching manually
+
 ## [1.5] - 2026-01-18
 
 ### Added

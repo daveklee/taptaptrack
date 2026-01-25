@@ -10,11 +10,15 @@ This is a simple iOS app for tracking life events with just one tap. Use it, mod
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-5.0-orange.svg)
 ![SwiftData](https://img.shields.io/badge/SwiftData-Persistence-green.svg)
 
+**Current version:** 1.5.1
+
 ## What It Does
 
 - Track moments with one tap
 - Organize taps into custom categories
 - Choose from 200+ icons for your tap presets
+- **Location capture timeout (v1.5.1)**: Confirmation stays open while location is found (up to 30 seconds), then auto-dismisses like normal
+- **Preset badges (v1.5.1)**: Location and number-input icons appear on tap squares for quick scanning
 - **Guided onboarding (v1.5)**: Set up your first taps with recommended presets, categories, and quick setup tips
 - **Tap shortcuts (v1.5)**: Jump to Manage from the home screen and long-press any tap to edit it fast
 - **Custom colors (v1.2)**: Pick from 16 curated colors for each event preset. Colors make your events instantly recognizable throughout the app.

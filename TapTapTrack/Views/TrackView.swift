@@ -739,6 +739,14 @@ struct EventPresetCard: View {
     let onLongPress: () -> Void
     
     @State private var isPressed = false
+
+    private var showsLocationBadge: Bool {
+        preset.locationTrackingEnabled
+    }
+
+    private var showsNumberBadge: Bool {
+        preset.numberEnabled
+    }
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -768,6 +776,29 @@ struct EventPresetCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
+
+            if showsLocationBadge || showsNumberBadge {
+                HStack(spacing: 6) {
+                    if showsLocationBadge {
+                        Image(systemName: "location.fill")
+                    }
+                    if showsNumberBadge {
+                        Image(systemName: "number")
+                    }
+                }
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.black.opacity(0.25))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(8)
+            }
             
             // Plus button indicator
             Circle()

@@ -1,5 +1,7 @@
 # iOS Shortcuts Setup Guide
 
+_Last updated for version 1.5.1_
+
 TapTapTrack supports iOS Shortcuts, allowing you to quickly track events from your home screen or Siri without opening the app first. The app will open automatically to show the confirmation screen where you can verify location, add notes, or make other updates.
 
 ## How It Works

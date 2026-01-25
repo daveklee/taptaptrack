@@ -1,5 +1,7 @@
 # Widget Extension Setup Guide
 
+_Last updated for version 1.5.1_
+
 This guide will help you add the widget extension to your Xcode project.
 
 ## Steps to Add Widget Extension

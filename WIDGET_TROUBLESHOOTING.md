@@ -1,5 +1,7 @@
 # Widget Troubleshooting Guide
 
+_Last updated for version 1.5.1_
+
 If widget buttons aren't working, follow these steps:
 
 ## 1. Verify URL Scheme Configuration
